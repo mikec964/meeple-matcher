@@ -1,0 +1,57 @@
+---
+title: "Meeple Matcher Project Proposal"
+author: "mikec964"
+date: "6/27/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Objective
+This project will recommend board games to gamers based on their current collection and stated interests, as described in their online gaming profile. 
+
+This benefits:
+
+* Dedicated gamers (dedicated enough to build an online profile) who want to find new games to buy or play
+* Vendors who want to recommend games to buy
+* Designers who want to evaluate the success of their game based on criteria like theme or the mechanics
+
+For this iteration, I'll focus on features for gamers.
+
+### What's a meeple?
+Many strategy [board games use meeples](https://boardgamegeek.com/geeklist/51968/games-featuring-meeple). A meeple is a wooden token that looks like a person and is used by a player.
+
+
+## Data Source and Collection
+I'll use explicit rating data from the gamer's profile on the [BoardGameGeek](https://www.boardgamegeek.com) (BGG) website, including:
+
+* Games they own
+* Numeric ratings they've posted (but not text comments)
+* Wish list (and numeric desirability rating)
+
+I'll also use other data from BGG including:
+
+* From other gamers who have rated the game, their ratings and other games they've rated
+* Other data about the games like the theme, the type, the and play mechanics
+
+I'll collect this via BGG's [XML API](https://boardgamegeek.com/wiki/page/BGG_XML_API2).
+
+
+## Solution
+For gamers who have listed and rated the games they own within the BGG site, I can provide a hybrid solution of both collaborative and content-based filtering methods.
+
+I'll use collaborative-filtering to identify other gamers who have positively rated games in common with the user, and then recommend games liked by the other gamers but unknown to the user.
+
+I'll use content-based filtering to find games with theme, type, and mechanics of interest.
+
+The project will be implemented in R.
+
+## Deliverables
+This project will provide the source code, several sample reports, an analysis of the effectiveness of the solution, suggested next steps, and slide show summary.
+
+The source code (and this proposal) are stored on [github](https://github.com/mikec964/meeple-matcher).
+
+Sample reports will be stored on [rpubs](http://rpubs.com/mike3d0g).
+

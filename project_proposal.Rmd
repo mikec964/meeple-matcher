@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # Objective
 This project will recommend board games to avid board game hobbyists based on their collection and interests as indicated in their online profile.
 
+This is my capstone project for the (Foundations of Data Science)[https://www.springboard.com/workshops/data-science/] workshop at [Springboard](https://www.springboard.com).
+
 ![North Sea Raiders game](images/game_north_sea_raiders.jpg)
 This benefits:
 

@@ -5,23 +5,27 @@ date: "6/27/2017"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Objective
-This project will recommend board games to gamers based on their current collection and stated interests, as described in their online gaming profile. 
+This project will recommend board games to avid board game hobbyists based on their collection and interests as indicated in their online profile.
 
+![North Sea Raiders game](images/game- north sea raiders.jpg)
 This benefits:
 
-* Dedicated gamers (dedicated enough to build an online profile) who want to find new games to buy or play
+* Dedicated gamers (dedicated enough to build an online profile) who want to find new games to play
 * Vendors who want to recommend games to buy
-* Designers who want to evaluate the success of their game based on criteria like theme or the mechanics
+* Designers who want to predict the success of their game designs based on criteria like theme or the mechanics
 
 For this iteration, I'll focus on features for gamers.
 
 ### What's a meeple?
-Many strategy [board games use meeples](https://boardgamegeek.com/geeklist/51968/games-featuring-meeple). A meeple is a wooden token that looks like a person and is used by a player.
+The board games we'll consider are modern strategy games like [Pandemic](https://boardgamegeek.com/boardgame/30549/pandemic), [Dominion](https://boardgamegeek.com/boardgame/36218/dominion), [7 Wonders](https://boardgamegeek.com/boardgame/68448/7-wonders), and [King of Tokyo](https://boardgamegeek.com/boardgame/70323/king-tokyo).
+
+![A meeple from Carcassonne](images/game- carcassonne.jpg)
+Many modern strategy [games use meeples](https://boardgamegeek.com/geeklist/51968/games-featuring-meeple). Meeples are the wooden tokens that look a little like people.
 
 
 ## Data Source and Collection
@@ -31,16 +35,16 @@ I'll use explicit rating data from the gamer's profile on the [BoardGameGeek](ht
 * Numeric ratings they've posted (but not text comments)
 * Wish list (and numeric desirability rating)
 
-I'll also use other data from BGG including:
+BGG has over 91,000 games and 1.5 million registered users. From within that pool I'll draw:
 
-* From other gamers who have rated the game, their ratings and other games they've rated
-* Other data about the games like the theme, the type, the and play mechanics
+* From gamers who have rated the game, their ratings and other games they've rated
+* Other data about the games like the theme, the type, and play mechanics
 
 I'll collect this via BGG's [XML API](https://boardgamegeek.com/wiki/page/BGG_XML_API2).
 
 
 ## Solution
-For gamers who have listed and rated the games they own within the BGG site, I can provide a hybrid solution of both collaborative and content-based filtering methods.
+For gamers who have listed and rated the games they own within the BGG site, I can provide a hybrid recommendation engine with both collaborative and content-based filtering methods.
 
 I'll use collaborative-filtering to identify other gamers who have positively rated games in common with the user, and then recommend games liked by the other gamers but unknown to the user.
 

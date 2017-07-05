@@ -4,27 +4,42 @@ root.path <- "https://boardgamegeek.com/xmlapi2/"
 # Get the user's collection and wishlist
 collection.params <- c("username=mikec",
                        "subtype=boardgame",
-                       "stats=1"
+                       "stats=1",
+                       "brief=1"
                        )
 collection.string <- paste(collection.params, collapse='&')
 collection.path <- paste(root.path, "collection?", collection.string, sep='')
 collection.path
 
-# BGG hack
-# BGG puts XML requests in a queue and returns 202,
-# then 200 for subsequent requests.
-# Until I figure that out, read from a test file.
-collection.path <- "data/collection2_mikec.xml"
-#collection.path <- "data/plant_catalog.xml"
+TESTMODE <- TRUE
+if (TESTMODE) {
+  # Read local file
+  collection.path <- "data/collection2brief_mikec.xml"
+  collection.xml <- xmlParse(collection.path, error=xmlErrorCumulator())
+} else {
+  # Get BGG XML
+  # BGG returns 202 on first API call,
+  # then on subsequent calls returns 200 and data
+  repeat {
+    collection.xml <- xmlParse(collection.path, error=xmlErrorCumulator())
+    if (TRUE) {
+      # We got the XML data
+      break
+    } else {
+      # We didn't get the data, wait before trying again
+    }
+  }
+}
 
-collection.xml <- xmlParse(collection.path, error = xmlErrorCumulator())
-collection.xml
+summary(collection.xml)
 collection.root <- xmlRoot(collection.xml, skip=TRUE)
 
 # It's reading right man, look!
-xmlSize(collection.root)
-collection.root[[1]][[1]] # game name
-collection.root[[1]][[2]] # year published
-xmlAttrs(collection.root[[1]][[5]]) # status, like owned or wishlist
-collection.root[[1]][[6]] # number of plays
-collection.root[[1]][[7]] # comments
+root <- collection.root
+li=2
+xmlName(root)
+xmlSize(root)
+xmlValue(root[[li]][["name"]]) # NAME
+xmlGetAttr(root[[li]][["stats"]][["rating"]], "value") # STATS, rating, etc.
+xmlGetAttr(root[[li]][["status"]], "own") # STATUS, owned, wishlist, etc.
+

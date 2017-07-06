@@ -1,4 +1,5 @@
 library(XML)
+library(httr)
 root.path <- "https://boardgamegeek.com/xmlapi2/"
 
 # Get the user's collection and wishlist
@@ -22,13 +23,16 @@ if (TESTMODE) {
   # BGG returns 202 on first API call,
   # on subsequent calls returns 200 and data
   repeat {
-    success <- try(collection.xml <- xmlParse(collection.path))
-    class(success)
-    if (class(success) == 'try-error') {
-      # We didn't get the data, wait before trying again
-      Sys.sleep(1) # in seconds
-    } else {
-      break
+    r <- GET(collection.path)
+    if(r$status_code == 200) {
+      success <- try(collection.xml <- xmlParse(content(r, "text")))
+      class(success)
+      if (class(success) == 'try-error') {
+        # We didn't get the data, wait before trying again
+        Sys.sleep(1) # in seconds
+      } else {
+        break
+      }
     }
   }
 }
@@ -52,4 +56,5 @@ rating <- xpathSApply(root, '//*/stats/rating', xmlAttrs)
 status <- xpathSApply(root, '//*/status', xmlAttrs)
 
 collection.df <- data.frame("mikec", name, rating)
+head(collection.df)
 

@@ -12,21 +12,23 @@ collection.path <- paste(root.path, "collection?", collection.string, sep='')
 collection.path
 
 TESTMODE <- TRUE
+#TESTMODE <- FALSE
 if (TESTMODE) {
   # Read local file
   collection.path <- "data/collection2brief_mikec.xml"
-  collection.xml <- xmlParse(collection.path, error=xmlErrorCumulator())
+  collection.xml <- xmlParse(collection.path)
 } else {
   # Get BGG XML
   # BGG returns 202 on first API call,
-  # then on subsequent calls returns 200 and data
+  # on subsequent calls returns 200 and data
   repeat {
-    collection.xml <- xmlParse(collection.path, error=xmlErrorCumulator())
-    if (TRUE) {
-      # We got the XML data
-      break
-    } else {
+    success <- try(collection.xml <- xmlParse(collection.path))
+    class(success)
+    if (class(success) == 'try-error') {
       # We didn't get the data, wait before trying again
+      Sys.sleep(1) # in seconds
+    } else {
+      break
     }
   }
 }
@@ -42,4 +44,12 @@ xmlSize(root)
 xmlValue(root[[li]][["name"]]) # NAME
 xmlGetAttr(root[[li]][["stats"]][["rating"]], "value") # STATS, rating, etc.
 xmlGetAttr(root[[li]][["status"]], "own") # STATUS, owned, wishlist, etc.
+
+# Move into dataframe
+name <- xpathSApply(root, '//*/name', xmlValue)
+length(name)
+rating <- xpathSApply(root, '//*/stats/rating', xmlAttrs)
+status <- xpathSApply(root, '//*/status', xmlAttrs)
+
+collection.df <- data.frame("mikec", name, rating)
 

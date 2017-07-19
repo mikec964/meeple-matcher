@@ -1,0 +1,19 @@
+---
+title: "meep-matcher.Rmd"
+author: "mikec964"
+date: "7/19/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load data for two users
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+source("scripts/get_gamer_collection.R")
+mc.df <- get_gamer_collection("mikec")
+eg.df <- get_gamer_collection("educatedgravy")
+head(mc.df)
+head(eg.df)
+```

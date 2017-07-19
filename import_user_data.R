@@ -4,15 +4,17 @@ library(dplyr)
 
 root.path <- "https://boardgamegeek.com/xmlapi2/"
 
+#gamername <- "educatedgravy"
+gamername <- "mikec"
+
 # Get the user's collection and wishlist
-collection.params <- c("username=mikec",
+collection.params <- c(paste0("username=", gamername),
                        "subtype=boardgame",
                        "stats=1",
                        "brief=1"
                        )
 collection.string <- paste(collection.params, collapse='&')
 collection.path <- paste(root.path, "collection?", collection.string, sep='')
-collection.path
 
 #TESTMODE <- TRUE
 TESTMODE <- FALSE
@@ -33,7 +35,6 @@ if (TESTMODE) {
     print(paste0("Getting file from web, status: ", r$status_code))
     if(r$status_code == 200) {
       success <- try(collection.doc <- xmlParse(r))
-      class(success)
       if(("XMLInternalDocument" %in% class(success))) {
         break
       } else {
@@ -52,31 +53,27 @@ if (TESTMODE) {
     }
   }
 }
-
-summary(collection.doc)
 collection.root <- xmlRoot(collection.doc, skip=TRUE)
 
 # It's reading right man, look! (from root node)
-xmlName(collection.root)
-xmlSize(collection.root)
-li=1
-xmlValue(collection.root[[li]][["name"]]) # NAME
-xmlGetAttr(collection.root[[li]][["stats"]][["rating"]], "value") # STATS, rating, etc.
-xmlGetAttr(collection.root[[li]][["status"]], "own") # STATUS, owned, wishlist, etc.
+# xmlName(collection.root)
+# xmlSize(collection.root)
+# li=1
+# xmlValue(collection.root[[li]][["name"]]) # NAME
+# xmlGetAttr(collection.root[[li]][["stats"]][["rating"]], "value") # STATS, rating, etc.
+# xmlGetAttr(collection.root[[li]][["status"]], "own") # STATUS, owned, wishlist, etc.
 
 # Move into dataframe (from doc)
 game <- xpathSApply(collection.root, '//*/name', xmlValue)
-length(game)
-gamer <- rep(c("mikec"), times=length(game))
+gamer <- rep(gamername, times=length(game))
 rating <- xpathSApply(collection.root, '//*/stats/rating', xmlAttrs)
 collection1.df <- data.frame(gamer, game, rating)
-head(collection1.df)
+# head(collection1.df)
 
 ## Status is a list (per item) of lists of attributes (up to 10)
 ## Combine list of unequal vectors into single df
 ## Solution here: https://stackoverflow.com/questions/27153979/converting-nested-list-unequal-length-to-data-frame
-
-status <- xpathSApply(collection.root, '//*/status', xmlAttrs)
+status <- xpathApply(collection.root, '//*/status', xmlAttrs)
 indx <- sapply(status, length)
 res.df <- as.data.frame(do.call(rbind,lapply(status, `length<-`, max(indx))))
 colnames(res.df) <- names(status[[which.max(indx)]])

@@ -65,13 +65,22 @@ xmlGetAttr(collection.root[[li]][["stats"]][["rating"]], "value") # STATS, ratin
 xmlGetAttr(collection.root[[li]][["status"]], "own") # STATUS, owned, wishlist, etc.
 
 # Move into dataframe (from doc)
-name <- xpathSApply(collection.root, '//*/name', xmlValue)
-length(name)
+game <- xpathSApply(collection.root, '//*/name', xmlValue)
+length(game)
+gamer <- rep(c("mikec"), times=length(game))
 rating <- xpathSApply(collection.root, '//*/stats/rating', xmlAttrs)
-collection.df <- data.frame("mikec", name, rating)
-head(collection.df)
+collection1.df <- data.frame(gamer, game, rating)
+head(collection1.df)
 
 ## Status is a list (per item) of lists of attributes (up to 10)
-status <- xpathSApply(collection.root, '//*/status', xmlAttrs)
+## Combine list of unequal vectors into single df
+## Solution here: https://stackoverflow.com/questions/27153979/converting-nested-list-unequal-length-to-data-frame
 
+status <- xpathSApply(collection.root, '//*/status', xmlAttrs)
+indx <- sapply(status, length)
+res.df <- as.data.frame(do.call(rbind,lapply(status, `length<-`, max(indx))))
+colnames(res.df) <- names(status[[which.max(indx)]])
+
+## combine into collection.df
+collection.df <- bind_cols(collection1.df, res.df)
 

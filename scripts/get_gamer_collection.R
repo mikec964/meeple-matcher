@@ -65,9 +65,11 @@ get_gamer_collection <- function(gamer_name, test_file="") {
 
   # Move into dataframe (from doc)
   game <- xpathSApply(collection.root, '//*/name', xmlValue)
+  thing_attr <- xpathSApply(collection.root, '//*/item', xmlAttrs)
+  game_id <- as.integer(thing_attr["objectid",])
   gamer <- rep(gamer_name, times=length(game))
-  rating <- xpathSApply(collection.root, '//*/stats/rating', xmlAttrs)
-  collection1.df <- data.frame(gamer, game, rating)
+  rating <- as.integer(xpathSApply(collection.root, '//*/stats/rating', xmlAttrs))
+  collection1.df <- data.frame(gamer, game, game_id, rating)
   # head(collection1.df)
 
   ## Status is a list (per item) of lists of attributes (up to 10)

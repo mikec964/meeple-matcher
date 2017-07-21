@@ -9,11 +9,43 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Load data for two users
+# Overview
+Here's the plan, so far:
+* Load the collection of games (and ratings) of the user/gamer, "customer". Row per game.
+* For each game in the customer's collection, get the gamers that rated it. Row per gamer/rating.
+* Add to table, some columns empty.
+* For each of those gamers, load their collections (and ratings), extend and update table
+
+
+# Load data for two users
+We're loading two just to make sure this works on n+1 cases.
+
+Note that number of columns might be different. This might happen if one user has some games on wishlist=1, then the column "wishlistpriority" is added.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 source("scripts/get_gamer_collection.R")
-mc.df <- get_gamer_collection("mikec")
+customer.df <- get_gamer_collection("mikec")
 eg.df <- get_gamer_collection("educatedgravy")
-head(mc.df)
+head(customer.df)
 head(eg.df)
 ```
+# For each game in the customer collection, get the ratings
+We'll append these rows to our customer collection table. Possible problems ahead:
+* Each game could have 10,000 or more ratings...
+  * 100 games is a million rows
+  * Reading ratings 100 at a time (per API) means 10,000 queries!
+* On the new rows the gamer, game, game_id, rating columns will be filled, but
+the own, owned, wishlist columns will be empty until we load data for each gamer
+* Since ratings are sorted best to worst, and delivered in pages of 100, we could:
+  * Stop getting ratings below 5
+  * Select some pages to sample
+
+For now, we'll load the first page of (100) ratings.
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+source("scripts/get_game_data.R")
+game_list <- customer.df[, "game_id"]
+game_ratings <- get_game_data(game_list[1])
+head(game_ratings)
+```
+
+# Combine customer game ratings with other gamer's ratings

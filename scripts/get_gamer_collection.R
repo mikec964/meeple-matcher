@@ -9,6 +9,15 @@ get_gamer_collection <- function(gamer_name, test_file="") {
   #
   # mc.df <- get_gamer_collection("mikec")
   # mc.df <- get_gamer_collection("mikec", "data/collection2brief_mikec.xml")
+  #
+  # The table looks like this, plus more boolean columns:
+  #
+  # | gamer     | game        | gameid  | rating  | own |...|
+  # |-----------|-------------|---------|---------|-----|---|
+  # | mikec     | 7 Wonders   | 68448   | 6       | 1   | 0 |
+  # | mikec     | Ad Astra    | 38343   | 10      | 0   | 1 |
+
+
 
   collection.params <- c(paste0("username=", gamer_name),
                          "subtype=boardgame",
@@ -81,7 +90,7 @@ get_gamer_collection <- function(gamer_name, test_file="") {
   colnames(res.df) <- names(status[[which.max(indx)]])
 
   ## combine into collection.df
-  collection.df <- bind_cols(collection1.df, res.df)
+  collection.df <- bind_rows(collection1.df, res.df)
   return(collection.df)
 }
 

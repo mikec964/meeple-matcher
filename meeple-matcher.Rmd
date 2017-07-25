@@ -24,10 +24,10 @@ Note that number of columns might be different. This might happen if one user ha
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 source("scripts/get_gamer_collection.R")
-customer.df <- get_gamer_collection("mikec")
-eg.df <- get_gamer_collection("educatedgravy")
-head(customer.df)
-head(eg.df)
+customer.tbl <- GetGamerCollection("mikec")
+#eg.df <- GetGamerCollection("educatedgravy")
+head(customer.tbl)
+#head(eg.df)
 ```
 # For each game in the customer collection, get the ratings
 We'll append these rows to our customer collection table. Possible problems ahead:
@@ -43,8 +43,8 @@ the own, owned, wishlist columns will be empty until we load data for each gamer
 For now, we'll load the first page of (100) ratings.
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 source("scripts/get_game_data.R")
-game_list <- customer.df[, "game_id"]
-game_ratings <- get_game_data(game_list[1])
+game_list <- customer.tbl[, "game.id"]
+game_ratings <- get_game_data(game_list[1,])
 head(game_ratings)
 ```
 

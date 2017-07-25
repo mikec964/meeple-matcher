@@ -1,7 +1,7 @@
 ---
 title: "meep-matcher.Rmd"
 author: "mikec964"
-date: "7/19/2017"
+date: "7/25/2017"
 output: html_document
 ---
 
@@ -19,7 +19,7 @@ Here's the plan, so far:
     * Request all, pause, load
     * Extend and update table
 
-```{r setup, include=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
 ```
 
@@ -70,4 +70,3 @@ wide_ratings <- ratings.tbl
 #  wide_ratings <- add_column(wide_ratings, na.col)
 #}
 ```
-

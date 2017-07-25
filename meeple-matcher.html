@@ -118,57 +118,51 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">meep-matcher.Rmd</h1>
 <h4 class="author"><em>mikec964</em></h4>
-<h4 class="date"><em>7/19/2017</em></h4>
+<h4 class="date"><em>7/25/2017</em></h4>
 
 </div>
 
 
-<div id="load-data-for-two-users" class="section level2">
-<h2>Load data for two users</h2>
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Here’s the plan, so far: 1. Load the collection of games (and ratings) of the user/gamer, “customer”. Row per game. 2. For each game in the customer’s collection, get the gamers that rated it. Row per gamer/rating. * We might request all of these in parallel, pause, then load what we can * Add to table, some columns empty. 3. For each of those gamers, load their collections (and ratings) * Request all, pause, load * Extend and update table</p>
+</div>
+<div id="load-data-for-two-users" class="section level1">
+<h1>Load data for two users</h1>
+<p>We’re loading two just to make sure this works on n+1 cases.</p>
+<p>Note that number of columns might be different. This might happen if one user has some games on wishlist=1, then the column “wishlistpriority” is added.</p>
 <pre><code>## [1] &quot;Getting file from web, status: 200&quot;</code></pre>
+<pre><code>## # A tibble: 6 x 14
+##   gamer                                          game game.id rating   own
+##   &lt;chr&gt;                                         &lt;chr&gt;   &lt;int&gt;  &lt;int&gt; &lt;lgl&gt;
+## 1 mikec 1830: The Game of Railroads and Robber Barons     421      8    NA
+## 2 mikec                                    1st &amp; Goal   95105      4    NA
+## 3 mikec                                     7 Wonders   68448      7    NA
+## 4 mikec                                       Acquire       5      6    NA
+## 5 mikec                                      Ad Astra   38343     NA    NA
+## 6 mikec                            Advanced Heroquest    1758     NA    NA
+## # ... with 9 more variables: prevowned &lt;lgl&gt;, fortrade &lt;lgl&gt;, want &lt;lgl&gt;,
+## #   wanttoplay &lt;lgl&gt;, wanttobuy &lt;lgl&gt;, wishlist &lt;lgl&gt;, preordered &lt;lgl&gt;,
+## #   wishlistpriority &lt;int&gt;, lastmodified &lt;chr&gt;</code></pre>
+</div>
+<div id="for-each-game-in-the-customer-collection-get-the-ratings" class="section level1">
+<h1>For each game in the customer collection, get the ratings</h1>
+<p>We’ll append these rows to our customer collection table. Possible problems ahead: * Each game could have 10,000 or more ratings… * 100 games is a million rows * Reading ratings 100 at a time (per API) means 10,000 queries! * On the new rows the gamer, game, game_id, rating columns will be filled, but the own, owned, wishlist columns will be empty until we load data for each gamer * Since ratings are sorted best to worst, and delivered in pages of 100, we could: * Stop getting ratings below 5 * Select some pages to sample</p>
+<p>For now: * Load the first page of (100) ratings * Only load for the first game in the customer collection, until this works</p>
 <pre><code>## [1] &quot;Getting file from web, status: 200&quot;</code></pre>
-<pre><code>##   gamer                                          game rating own prevowned
-## 1 mikec 1830: The Game of Railroads and Robber Barons      8   0         1
-## 2 mikec                                    1st &amp; Goal      4   1         0
-## 3 mikec                                     7 Wonders      7   1         0
-## 4 mikec                                       Acquire      6   1         0
-## 5 mikec                                      Ad Astra    N/A   0         0
-## 6 mikec                            Advanced Heroquest    N/A   1         0
-##   fortrade want wanttoplay wanttobuy wishlist wishlistpriority
-## 1        0    0          0         0        0                0
-## 2        0    0          0         0        0                0
-## 3        0    0          0         0        0                0
-## 4        0    0          0         0        0                0
-## 5        0    0          0         0        1                2
-## 6        0    0          0         0        0                0
-##            preordered        lastmodified
-## 1 2013-03-22 00:15:21                &lt;NA&gt;
-## 2 2013-01-22 22:52:18                &lt;NA&gt;
-## 3 2015-10-26 17:35:01                &lt;NA&gt;
-## 4 2013-01-22 22:51:44                &lt;NA&gt;
-## 5                   0 2013-09-02 23:55:28
-## 6 2013-02-22 16:44:45                &lt;NA&gt;</code></pre>
-<pre><code>##           gamer                              game rating own prevowned
-## 1 educatedgravy 13 Days: The Cuban Missile Crisis    7.5   1         0
-## 2 educatedgravy 1960: The Making of the President    8.5   1         0
-## 3 educatedgravy             1989: Dawn of Freedom    N/A   1         0
-## 4 educatedgravy                               504    N/A   1         0
-## 5 educatedgravy                    7 Wonders Duel    6.5   1         0
-## 6 educatedgravy                   Age of Industry    7.5   1         0
-##   fortrade want wanttoplay wanttobuy wishlist preordered
-## 1        0    0          0         0        0          0
-## 2        0    0          0         0        0          0
-## 3        0    0          0         0        0          0
-## 4        0    0          0         0        0          0
-## 5        0    0          0         0        0          0
-## 6        0    0          0         0        0          0
-##          lastmodified
-## 1 2017-07-01 18:51:20
-## 2 2017-07-01 18:51:25
-## 3 2016-06-22 14:24:58
-## 4 2016-01-04 15:48:21
-## 5 2016-08-01 09:50:18
-## 6 2017-07-19 08:07:14</code></pre>
+<pre><code>## # A tibble: 6 x 3
+##   game.id         gamer rating
+##     &lt;int&gt;         &lt;chr&gt;  &lt;int&gt;
+## 1     421        chamel     10
+## 2     421      wkilgore     10
+## 3     421     jhammer76     10
+## 4     421        Pielso     10
+## 5     421 Perfido Siena     10
+## 6     421     ErikArndt     10</code></pre>
+</div>
+<div id="combine-customer-game-ratings-with-other-gamers-ratings" class="section level1">
+<h1>Combine customer game ratings with other gamer’s ratings</h1>
+<p>Now, we want to combine these rows with the main collection table. This will be unnecessarily ugly. We’ll rearrange and add columns (with NAs) to the game_ratings.tbl until it looks like collection.tbl.</p>
 </div>
 
 

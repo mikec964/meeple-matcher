@@ -19,6 +19,10 @@ Here's the plan, so far:
     * Request all, pause, load
     * Extend and update table
 
+```{r setup, include=FALSE}
+library(dplyr)
+```
+
 # Load data for two users
 We're loading two just to make sure this works on n+1 cases.
 
@@ -43,13 +47,27 @@ the own, owned, wishlist columns will be empty until we load data for each gamer
   * Stop getting ratings below 5
   * Select some pages to sample
 
-For now, we'll load the first page of (100) ratings.
+For now:
+ * Load the first page of (100) ratings
+ * Only load for the first game in the customer collection, until this works
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 source("scripts/get_game_ratings.R")
-game_ratings <- GetGameRatings(collection.tbl[1,"game.id"])
-head(game_ratings)
+ratings.tbl <- GetGameRatings(collection.tbl[1,"game.id"])
+head(ratings.tbl)
 ```
 
 # Combine customer game ratings with other gamer's ratings
-Now, we want to combine these rows with the main collection table.
+Now, we want to combine these rows with the main collection table. This will be unnecessarily ugly. We'll rearrange and add columns (with NAs) to the game_ratings.tbl until it looks like collection.tbl.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+na.col <- rep(NA, dim(collection.tbl)[1])
+add_cols <- setdiff(colnames(collection.tbl), colnames(ratings.tbl))
+wide_ratings <- ratings.tbl
+
+#for(c in add_cols) {
+#  print(c)
+#  wide_ratings <- add_column(wide_ratings, na.col)
+#}
+```
+

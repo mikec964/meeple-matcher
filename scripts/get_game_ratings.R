@@ -4,26 +4,26 @@ library(dplyr)
 
 root.path <- "https://boardgamegeek.com/xmlapi2/"
 
-get_game_data <- function(game_id, test_file="") {
+GetGameRatings <- function(game.id, test.file="") {
   # Get ratings and gamers who have rated
   #
-  # space_alert.df <- get_game_data(38453)
-  # mc.df <- get_game_data(38453, "data/thing2_38453.xml")
+  # space_alert.df <- GetGameRatings(38453)
+  # mc.df <- GetGameRatings(38453, "data/thing2_38453.xml")
   #
   # | gameid | gamername | rating |
   # |--------|-----------|--------|
   # | 38453  | mikec     | 6      |
   # | 38453  | gamerdude | 7      |
 
-  collection.params <- c(paste0("id=", game_id),
+  collection.params <- c(paste0("id=", game.id),
                          "ratingcomments=1"
   )
   collection.string <- paste(collection.params, collapse='&')
   collection.path <- paste(root.path, "thing?", collection.string, sep='')
 
-  if (test_file != "") {
+  if (test.file != "") {
     # Read local file
-    collection.doc <- xmlParse(test_file)
+    collection.doc <- xmlParse(test.file)
     # Use xmlParse and not xmlTreeParse so that:
     # * the tree is represented in internal C instead of R
     # * getNodeSet() and others can operate on it
@@ -68,11 +68,11 @@ get_game_data <- function(game_id, test_file="") {
   number.comments <- as.integer(comments.attr["totalitems"])
 
   comment.list <- xpathSApply(collection.root, '//*/item/comments/comment', xmlAttrs)
-  rating <- comment.list["rating", ]
+  rating <- as.integer(comment.list["rating", ])
   gamer <- comment.list["username", ]
-  game_id <- rep(id, times=length(rating))
+  game.id <- rep(id, times=length(rating))
 
-  collection.df <- data.frame(game_id, gamer, rating)
+  collection.df <- tibble(game.id, gamer, rating)
   return(collection.df)
 }
 

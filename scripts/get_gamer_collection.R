@@ -17,10 +17,17 @@ GetGamerCollection <- function(gamer.name, test.file="") {
   # | mikec     | 7 Wonders   | 68448   | 6       | 1   | 0 |
   # | mikec     | Ad Astra    | 38343   | 10      | 0   | 1 |
 
-  GetElements <- function(tList, tElements) {
+  GetElements <- function(tList, tElements, tType="") {
     # Returns specified elements from the list
     # tList is a list with 1 element: A vector with 9 or 10 attributes
     rList <- unlist(tList)[tElements]
+    if(tType == "logical") {
+      rList <- as.logical(rList)
+    } else if(tType == "date") {
+      rList <- as.Date(rList)
+    } else if(tType == "int") {
+      rList <- as.integer(rList)
+    }
     names(rList) <- NULL
     return(rList)
   }
@@ -88,7 +95,7 @@ GetGamerCollection <- function(gamer.name, test.file="") {
                 "want", "wanttoplay", "wanttobuy",
                 "wishlist", "preordered")
   bool.tbl <- status %>%
-    lapply(GetElements, tElements=bool.fields) %>%
+    lapply(GetElements, tElements=bool.fields, tType="logical") %>%
     data.frame() %>%
     t() %>%
     tbl_df()
@@ -96,7 +103,7 @@ GetGamerCollection <- function(gamer.name, test.file="") {
 
   int.fields <- c("wishlistpriority")
   int.tbl <- status %>%
-    lapply(GetElements, tElements=int.fields) %>%
+    lapply(GetElements, tElements=int.fields, tType="int") %>%
     data.frame() %>%
     t() %>%
     tbl_df()
@@ -104,7 +111,7 @@ GetGamerCollection <- function(gamer.name, test.file="") {
 
   date.fields <- c("lastmodified")
   date.tbl <- status %>%
-    lapply(GetElements, tElements=date.fields) %>%
+    lapply(GetElements, tElements=date.fields, tType="date") %>%
     data.frame() %>%
     t() %>%
     tbl_df()

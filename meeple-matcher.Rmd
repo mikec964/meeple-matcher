@@ -11,11 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Overview
 Here's the plan, so far:
-* Load the collection of games (and ratings) of the user/gamer, "customer". Row per game.
-* For each game in the customer's collection, get the gamers that rated it. Row per gamer/rating.
-* Add to table, some columns empty.
-* For each of those gamers, load their collections (and ratings), extend and update table
-
+1. Load the collection of games (and ratings) of the user/gamer, "customer". Row per game.
+2. For each game in the customer's collection, get the gamers that rated it. Row per gamer/rating.
+    * We might request all of these in parallel, pause, then load what we can
+    * Add to table, some columns empty.
+3. For each of those gamers, load their collections (and ratings)
+    * Request all, pause, load
+    * Extend and update table
 
 # Load data for two users
 We're loading two just to make sure this works on n+1 cases.
@@ -24,9 +26,10 @@ Note that number of columns might be different. This might happen if one user ha
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 source("scripts/get_gamer_collection.R")
-customer.tbl <- GetGamerCollection("mikec")
-#eg.df <- GetGamerCollection("educatedgravy")
-head(customer.tbl)
+customer <- "mikec"
+collection.tbl <- GetGamerCollection(customer)
+head(collection.tbl)
+#eg.tbl <- GetGamerCollection("educatedgravy")
 #head(eg.df)
 ```
 # For each game in the customer collection, get the ratings
@@ -41,11 +44,12 @@ the own, owned, wishlist columns will be empty until we load data for each gamer
   * Select some pages to sample
 
 For now, we'll load the first page of (100) ratings.
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-source("scripts/get_game_data.R")
-game_list <- customer.tbl[, "game.id"]
-game_ratings <- get_game_data(game_list[1,])
+source("scripts/get_game_ratings.R")
+game_ratings <- GetGameRatings(collection.tbl[1,"game.id"])
 head(game_ratings)
 ```
 
 # Combine customer game ratings with other gamer's ratings
+Now, we want to combine these rows with the main collection table.

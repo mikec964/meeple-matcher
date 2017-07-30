@@ -2,36 +2,38 @@ library(httr)
 library(XML)
 library(dplyr)
 
-root.path <- "https://boardgamegeek.com/xmlapi2/"
-
 GetGamerCollection <- function(gamer.name, test.file="") {
   # Get the user's collection and wishlist
+  #
+  # Args:
+  #   gamer.name: BGG username
+  #   test.file: Optional path local XML file of gamer. Without this the
+  #     file will be loaded from the BGG server.
   #
   # mc.df <- GetGamerCollection("mikec")
   # mc.df <- GetGamerCollection("mikec", "data/collection2brief_mikec.xml")
   #
-  # The table looks like this, plus more boolean columns:
+  # Returns:
+  #   A tidy data frame with a row per game in collection, column per variable.
+  #   Column order is not guaranteed.
+  #   Boolean columns: own, prevowned, fortrade, want, wanttoplay,
+  #     wanttobuy, wishlist, preordered
+  #   Integer columns:  wishlistpriority
+  #   Date columns: lastmodified
+  #   The table looks like this, plus more boolean columns:
   #
-  # | gamer     | game        | gameid  | rating  | own |...|
-  # |-----------|-------------|---------|---------|-----|---|
-  # | mikec     | 7 Wonders   | 68448   | 6       | 1   | 0 |
-  # | mikec     | Ad Astra    | 38343   | 10      | 0   | 1 |
+  #   | gamer     | game        | gameid  | rating  | own |...|
+  #   |-----------|-------------|---------|---------|-----|---|
+  #   | mikec     | 7 Wonders   | 68448   | 6       | 1   | 0 |
+  #   | mikec     | Ad Astra    | 38343   | 10      | 0   | 1 |
 
-  GetElements <- function(tList, tElements, tType="") {
-    # Returns specified elements from the list
-    # tList is a list with 1 element: A vector with 9 or 10 attributes
-    rList <- unlist(tList)[tElements]
-    if(tType == "logical") {
-      rList <- as.logical(rList)
-    } else if(tType == "date") {
-      rList <- as.Date(rList)
-    } else if(tType == "int") {
-      rList <- as.integer(rList)
-    }
-    names(rList) <- NULL
-    return(rList)
-  }
+  bool.fields <- c("own", "prevowned", "fortrade",
+                   "want", "wanttoplay", "wanttobuy",
+                   "wishlist", "preordered")
+  int.fields <- c("wishlistpriority")
+  date.fields <- c("lastmodified")
 
+  root.path <- "https://boardgamegeek.com/xmlapi2/"
   collection.params <- c(paste0("username=", gamer.name),
                          "subtype=boardgame",
                          "stats=1",
@@ -40,40 +42,41 @@ GetGamerCollection <- function(gamer.name, test.file="") {
   collection.string <- paste(collection.params, collapse='&')
   collection.path <- paste(root.path, "collection?", collection.string, sep='')
 
-  if (test.file != "") {
-    # Read local file
-    #collection.path <- "data/collection2brief_mikec.xml"
-    collection.doc <- xmlParse(test.file)
-    # Use xmlParse and not xmlTreeParse so that:
-    # * the tree is represented in internal C instead of R
-    # * xpathApply() and others can operate on it
-  } else {
+  if(test.file == "") {
     # Get BGG XML
-    # BGG returns 202 on first API call,
-    # on subsequent calls returns 200 and data
+    # BGG returns 202 on first API call, then 200 and data on subsequent calls
+    # so wait, loop, ask again
     wait.for.secs <- 2 # see what I did there?
     repeat {
       r <- GET(collection.path)
-      print(paste0("Getting file from web, status: ", r$status_code))
-      if(r$status_code == 200) {
-        success <- try(collection.doc <- xmlParse(r))
-        if(("XMLInternalDocument" %in% class(success))) {
-          break
-        } else {
-          stop("Couldn't parse XML.")
-        }
-      } else if(r$status_code == 202) {
+      print(sprintf("Getting %s collection from web, status: %s",
+                    gamer.name, r$status_code))
+      if(r$status_code == 202) {
         # We didn't get the data, wait before trying again
-        print(paste0("Waiting ", wait.for.secs, " seconds to try again."))
+        print(sprintf("Waiting %s seconds to try again.", wait.for.secs))
         Sys.sleep(wait.for.secs) # in seconds
         wait.for.secs <- wait.for.secs + 1
         next
+      } else if(r$status_code == 200) {
+        # We got the data, now parse it
+        break
       } else {
         # Other failure status code
-        print(paste0("Couldn't read URL. ", r$status_code))
-        break
+        stop(sprintf("Couldn't read %s, status code: %s.",
+                     collection.path, r$status_code))
       }
     }
+  } else {
+    # load test file
+    r <- test.file
+  }
+
+  # Use xmlParse and not xmlTreeParse so that:
+  # * the tree is represented in internal C instead of R
+  # * xpathApply() and others can operate on it
+  success <- try(collection.doc <- xmlParse(r))
+  if(!("XMLInternalDocument" %in% class(success))) {
+    stop("Couldn't parse XML.")
   }
   collection.root <- xmlRoot(collection.doc, skip=TRUE)
 
@@ -82,42 +85,25 @@ GetGamerCollection <- function(gamer.name, test.file="") {
   thing.attr <- xpathSApply(collection.root, '//*/item', xmlAttrs)
   game.id <- as.integer(thing.attr["objectid",])
   gamer <- rep(gamer.name, times=length(game))
-  rating <- as.integer(xpathSApply(collection.root, '//*/stats/rating', xmlAttrs))
+  rating <- suppressWarnings(as.integer(
+    xpathSApply(collection.root, '//*/stats/rating', xmlAttrs)))
   collection1.tbl <- tibble(gamer, game, game.id, rating)
 
   # Status is a list (per item) of lists of attributes (up to 10)
-  # Combine list of unequal vectors into single df
   status <- xpathApply(collection.root, '//*/status', xmlAttrs)
 
+#  test <- status %>%
+#    lapply(function(x) data.frame(t(x), stringsAsFactors = FALSE)) %>%
+#    bind_rows()
 
-  # For bool, int, and date cols, create a DF with 1 row per var, and 159 cols
-  bool.fields <- c("own", "prevowned", "fortrade",
-                "want", "wanttoplay", "wanttobuy",
-                "wishlist", "preordered")
-  bool.tbl <- status %>%
-    lapply(GetElements, tElements=bool.fields, tType="logical") %>%
-    data.frame() %>%
-    t() %>%
-    tbl_df()
-  colnames(bool.tbl) <- bool.fields
-
-  int.fields <- c("wishlistpriority")
-  int.tbl <- status %>%
-    lapply(GetElements, tElements=int.fields, tType="int") %>%
-    data.frame() %>%
-    t() %>%
-    tbl_df()
-  colnames(int.tbl) <- int.fields
-
-  date.fields <- c("lastmodified")
-  date.tbl <- status %>%
-    lapply(GetElements, tElements=date.fields, tType="date") %>%
-    data.frame() %>%
-    t() %>%
-    tbl_df()
-  colnames(date.tbl) <- date.fields
+  status.tbl <- status %>%
+    lapply(function(x) as_tibble(t(x))) %>%
+    bind_rows()
+  for(c in date.fields) { status.tbl[c] <- (as.Date(status.tbl[[c]]))}
+  for(c in bool.fields) { status.tbl[c] <- (status.tbl[[c]] == "1") }
+  for(c in int.fields)  { status.tbl[c] <- (as.integer(status.tbl[[c]]))}
 
   ## combine into collection.df
-  bigT.tbl <- bind_cols(collection1.tbl, bool.tbl, int.tbl, date.tbl)
+  bigT.tbl <- bind_cols(collection1.tbl, status.tbl)
   return(bigT.tbl)
 }

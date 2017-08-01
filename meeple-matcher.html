@@ -118,51 +118,156 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">meep-matcher.Rmd</h1>
 <h4 class="author"><em>mikec964</em></h4>
-<h4 class="date"><em>7/25/2017</em></h4>
+<h4 class="date"><em>8/1/2017</em></h4>
 
 </div>
 
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
-<p>Here’s the plan, so far: 1. Load the collection of games (and ratings) of the user/gamer, “customer”. Row per game. 2. For each game in the customer’s collection, get the gamers that rated it. Row per gamer/rating. * We might request all of these in parallel, pause, then load what we can * Add to table, some columns empty. 3. For each of those gamers, load their collections (and ratings) * Request all, pause, load * Extend and update table</p>
+<p>Here’s the plan, so far:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Load the customer’s collection.</strong><br />
+Load the collection of games (and ratings) of the user. All users are gamers, but the person we’re building the recommendation for is the customer. We’ll build a Collections table with a row per game.</p></li>
+<li><p><strong>Per game, load the ratings.</strong><br />
+For each game in the customer’s collection, get the gamers that also rated it. Row per gamer/rating.</p>
+<ul>
+<li>Request all of these in parallel, pause, then load what we can<br />
+</li>
+<li>Add to Ratings table</li>
+</ul></li>
+<li><p><strong>Rank gamers that are like the customer.</strong></p></li>
+<li><p><strong>Per ranking, load the gamer’s collections.</strong><br />
+For gamers that are similar to the customer, load their collections. Games in their collections that are unknown to the customer are possible recommendations.</p>
+<ul>
+<li>Request all of these in parallel, pause, then load what we can</li>
+</ul></li>
+</ol>
 </div>
-<div id="load-data-for-two-users" class="section level1">
-<h1>Load data for two users</h1>
-<p>We’re loading two just to make sure this works on n+1 cases.</p>
-<p>Note that number of columns might be different. This might happen if one user has some games on wishlist=1, then the column “wishlistpriority” is added.</p>
-<pre><code>## [1] &quot;Getting file from web, status: 200&quot;</code></pre>
+<div id="load-the-customers-collection" class="section level1">
+<h1>Load the customer’s collection</h1>
+<p>This is probably in the range of 10 to 200 games. Note that for some customers, the number of columns might be different. If a customer has a game with wishlist=1, then for that row the column “wishlistpriority” is added.</p>
+<pre class="r"><code>customer &lt;- &quot;mikec&quot;
+collection.tbl &lt;- GetGamerCollection(customer)</code></pre>
+<pre><code>## Loading: data/collection-username=mikec.xml</code></pre>
+<pre><code>## Caching: data/collection-username=mikec.xml</code></pre>
+<pre class="r"><code>head(collection.tbl)</code></pre>
 <pre><code>## # A tibble: 6 x 14
 ##   gamer                                          game game.id rating   own
 ##   &lt;chr&gt;                                         &lt;chr&gt;   &lt;int&gt;  &lt;int&gt; &lt;lgl&gt;
-## 1 mikec 1830: The Game of Railroads and Robber Barons     421      8    NA
-## 2 mikec                                    1st &amp; Goal   95105      4    NA
-## 3 mikec                                     7 Wonders   68448      7    NA
-## 4 mikec                                       Acquire       5      6    NA
-## 5 mikec                                      Ad Astra   38343     NA    NA
-## 6 mikec                            Advanced Heroquest    1758     NA    NA
+## 1 mikec 1830: The Game of Railroads and Robber Barons     421      8 FALSE
+## 2 mikec                                    1st &amp; Goal   95105      4  TRUE
+## 3 mikec                                     7 Wonders   68448      7  TRUE
+## 4 mikec                                       Acquire       5      6  TRUE
+## 5 mikec                                      Ad Astra   38343     NA FALSE
+## 6 mikec                            Advanced Heroquest    1758     NA  TRUE
 ## # ... with 9 more variables: prevowned &lt;lgl&gt;, fortrade &lt;lgl&gt;, want &lt;lgl&gt;,
 ## #   wanttoplay &lt;lgl&gt;, wanttobuy &lt;lgl&gt;, wishlist &lt;lgl&gt;, preordered &lt;lgl&gt;,
-## #   wishlistpriority &lt;int&gt;, lastmodified &lt;chr&gt;</code></pre>
+## #   lastmodified &lt;date&gt;, wishlistpriority &lt;int&gt;</code></pre>
+<pre class="r"><code>#eg.tbl &lt;- GetGamerCollection(&quot;educatedgravy&quot;)
+#head(eg.df)</code></pre>
 </div>
-<div id="for-each-game-in-the-customer-collection-get-the-ratings" class="section level1">
-<h1>For each game in the customer collection, get the ratings</h1>
-<p>We’ll append these rows to our customer collection table. Possible problems ahead: * Each game could have 10,000 or more ratings… * 100 games is a million rows * Reading ratings 100 at a time (per API) means 10,000 queries! * On the new rows the gamer, game, game_id, rating columns will be filled, but the own, owned, wishlist columns will be empty until we load data for each gamer * Since ratings are sorted best to worst, and delivered in pages of 100, we could: * Stop getting ratings below 5 * Select some pages to sample</p>
-<p>For now: * Load the first page of (100) ratings * Only load for the first game in the customer collection, until this works</p>
-<pre><code>## [1] &quot;Getting file from web, status: 200&quot;</code></pre>
+<div id="per-game-load-the-ratings" class="section level1">
+<h1>Per game, load the ratings</h1>
+<p>We’ll build a narrow ratings table with game.id, gamer, and rating columns. Possible problems ahead:</p>
+<ul>
+<li><p>Each game could have 10,000 or more ratings…</p>
+<ul>
+<li>Reading ratings 100 at a time (per API) means 100 queries<br />
+</li>
+<li>If the customer has 100 games, that’s 10,000 queries!</li>
+</ul></li>
+<li><p>Since ratings are sorted best to worst, and delivered in pages of 100, we could:</p>
+<ul>
+<li>Stop getting ratings below 5<br />
+</li>
+<li>Select some pages to sample</li>
+</ul></li>
+</ul>
+<p>For now:</p>
+<ul>
+<li>Load the first page of (100) ratings per game<br />
+</li>
+<li>Load a sample from the customer’s collection</li>
+</ul>
+<pre class="r"><code>s &lt;- 10
+sample.tbl &lt;- sample_n(collection.tbl, s)
+for(game in 1:s) {
+  message(sprintf(&quot;\nLoading ratings for %s: %s.&quot;, sample.tbl[game, &quot;game&quot;], sample.tbl[game, &quot;game.id&quot;]))
+  game.ratings.tbl &lt;- GetGameRatings(sample.tbl[[game, &quot;game.id&quot;]])
+  if(game == 1) {
+    ratings.tbl &lt;- game.ratings.tbl
+  } else {
+    ratings.tbl &lt;- bind_rows(ratings.tbl, game.ratings.tbl)
+  }
+}</code></pre>
+<pre><code>## 
+## Loading ratings for Diplomacy: 483.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=483&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=483.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Ransom: 114.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=114&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=114.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Zombie 15': 144826.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=144826&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=144826.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Galaxy Trucker: 31481.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=31481&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=31481.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Silent Death: 3895.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=3895&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=3895.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Citadels: 478.</code></pre>
+<pre><code>## Loading: data/thing-id=478.xml</code></pre>
+<pre><code>## Caching: data/thing-id=478.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Space Cadets: 123096.</code></pre>
+<pre><code>## Loading: data/thing-id=123096.xml</code></pre>
+<pre><code>## Caching: data/thing-id=123096.xml</code></pre>
+<pre><code>## 
+## Loading ratings for ...and then, we held hands.: 153999.</code></pre>
+<pre><code>## Loading: data/thing-id=153999.xml</code></pre>
+<pre><code>## Caching: data/thing-id=153999.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Dead of Winter: A Crossroads Game: 150376.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=150376&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=150376.xml</code></pre>
+<pre><code>## 
+## Loading ratings for Haunted Castle: 1307.</code></pre>
+<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=1307&amp;ratingcomments=1</code></pre>
+<pre><code>## OK (HTTP 200).</code></pre>
+<pre><code>## Caching: data/thing-id=1307.xml</code></pre>
+<pre class="r"><code>head(ratings.tbl)</code></pre>
 <pre><code>## # A tibble: 6 x 3
-##   game.id         gamer rating
-##     &lt;int&gt;         &lt;chr&gt;  &lt;int&gt;
-## 1     421        chamel     10
-## 2     421      wkilgore     10
-## 3     421     jhammer76     10
-## 4     421        Pielso     10
-## 5     421 Perfido Siena     10
-## 6     421     ErikArndt     10</code></pre>
+##   game.id      gamer rating
+##     &lt;int&gt;      &lt;chr&gt;  &lt;int&gt;
+## 1     483      hixpe     10
+## 2     483  28lobster     10
+## 3     483  Kaneyashi     10
+## 4     483    drok012     10
+## 5     483    Imrihil     10
+## 6     483 vultanhawk     10</code></pre>
 </div>
-<div id="combine-customer-game-ratings-with-other-gamers-ratings" class="section level1">
-<h1>Combine customer game ratings with other gamer’s ratings</h1>
-<p>Now, we want to combine these rows with the main collection table. This will be unnecessarily ugly. We’ll rearrange and add columns (with NAs) to the game_ratings.tbl until it looks like collection.tbl.</p>
+<div id="rank-gamers-that-are-like-the-customer" class="section level1">
+<h1>Rank gamers that are like the customer</h1>
+<p>The general formula is:<br />
+* For the games we have rated, find gamers who have rated them similarly<br />
+* The more games they agree with us on, the better</p>
+</div>
+<div id="per-rating-load-the-gamers-collections" class="section level1">
+<h1>Per rating, load the gamer’s collections</h1>
+<p>We should make a unique list of gamer IDs that have rated games, then load their collections.</p>
 </div>
 
 

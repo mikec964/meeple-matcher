@@ -1,11 +1,12 @@
-library(XML)
 library(dplyr)
+library(XML)
 
-GetGameRatings <- function(game.id, test.file="") {
+GetGameRatings <- function(game.id, test.file="",
+                           use.cache=TRUE, make.cache=TRUE) {
   # Get ratings and gamers who have rated
   #
   # space_alert.df <- GetGameRatings(38453)
-  # mc.df <- GetGameRatings(38453, "data/thing2_38453.xml")
+  # mc.df <- GetGameRatings(38453, "data/thing-id=38453.xml")
   #
   # | gameid | gamername | rating |
   # |--------|-----------|--------|
@@ -17,7 +18,8 @@ GetGameRatings <- function(game.id, test.file="") {
                               "id=", game.id,
                               "&ratingcomments=1")
   collection.path <- paste0(root.path, collection.params)
-  collection.root <- GetBGGXML(collection.path, test.file)
+  collection.root <- GetBGGXML(collection.path, test.file,
+                               use.cache, make.cache)
 
   # Move into dataframe (from doc)
   item.attr <- unlist(xpathApply(collection.root, '//*/item', xmlAttrs)) # id, type

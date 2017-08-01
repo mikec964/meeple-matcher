@@ -7,4 +7,5 @@ file.sources
 sapply(file.sources, source)
 #sapply(file.sources, source, .GlobalEnv)
 
-test_dir('tests', reporter='Summary')
+test.results <- test_dir('tests', reporter='Summary')
+View(test.results)

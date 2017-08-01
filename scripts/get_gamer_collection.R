@@ -1,7 +1,8 @@
-library(XML)
 library(dplyr)
+library(XML)
 
-GetGamerCollection <- function(gamer.name, test.file="") {
+GetGamerCollection <- function(gamer.name, test.file="",
+                               use.cache=TRUE, make.cache=TRUE) {
   # Get the user's collection and wishlist
   #
   # Args:
@@ -10,7 +11,7 @@ GetGamerCollection <- function(gamer.name, test.file="") {
   #     file will be loaded from the BGG server.
   #
   # mc.df <- GetGamerCollection("mikec")
-  # mc.df <- GetGamerCollection("mikec", "data/collection2brief_mikec.xml")
+  # mc.df <- GetGamerCollection("mikec", "data/collection-username=mikec.xml")
   #
   # Returns:
   #   A tidy data frame with a row per game in collection, column per variable.
@@ -33,7 +34,8 @@ GetGamerCollection <- function(gamer.name, test.file="") {
                               "&stats=1",
                               "&brief=1")
   collection.path <- paste0(root.path, collection.params)
-  collection.root <- GetBGGXML(collection.path, test.file)
+  collection.root <- GetBGGXML(collection.path, test.file,
+                               use.cache, make.cache)
 
   bool.fields <- c("own", "prevowned", "fortrade",
                    "want", "wanttoplay", "wanttobuy",

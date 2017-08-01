@@ -9,9 +9,10 @@ GetBGGXML <- function(collection.path, test.file="") {
   #   test.file: Optional path to local XML file of gamer. Without this the
   #     file will be loaded from the BGG server.
   #
-  # file.xml <- GetBGGXML(
-  #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&brief=1&stats=1")
-  # mc.df <- GetGamerCollection("mikec", "data/collection2brief_mikec.xml")
+  # collection.xml <- GetBGGXML(
+  #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1")
+  # ratings.xml <- GetBGGXML(
+  #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1")
   #
   # Returns:
   #   The XML root document

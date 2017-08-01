@@ -1,20 +1,16 @@
 test_that("GetGamerCollection loads XML from server", {
   customer <- "mikec"
   res1 <- evaluate_promise(GetGamerCollection(customer))
-
-  expect_equal(res1$output,
-               paste("[1] \"Getting mikec collection from web, status: 200\""))
-  # expect_equal(res1$warnings, "NAs introduced by coercion")
+  expect_equal(res1$messages[1],
+               "Getting: https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1\n")
 })
 
 test_that("GetGamerCollection parses XML", {
   # This tests from a file so we can check parsing
   customer <- "mikec"
-  customer.file <- "data/collection2brief_mikec.xml"
+  customer.file <- "../data/collection2brief_mikec.xml"
 
-#  res2 <- evaluate_promise(GetGamerCollection(customer, customer.file))
-  res2 <- evaluate_promise(GetGamerCollection(customer))
-  # expect_equal(res2$warnings, "NAs introduced by coercion")
+  res2 <- evaluate_promise(GetGamerCollection(customer, customer.file))
   collection.tbl <- res2$result
 
   # Check a game that own or owned, and rated

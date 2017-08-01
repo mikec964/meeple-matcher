@@ -1,0 +1,58 @@
+library(httr)
+library(XML)
+
+GetBGGXML <- function(collection.path, test.file="") {
+  # Get XML data from BGG or load from test file
+  #
+  # Args:
+  #   url: BGG url
+  #   test.file: Optional path to local XML file of gamer. Without this the
+  #     file will be loaded from the BGG server.
+  #
+  # file.xml <- GetBGGXML(
+  #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&brief=1&stats=1")
+  # mc.df <- GetGamerCollection("mikec", "data/collection2brief_mikec.xml")
+  #
+  # Returns:
+  #   The XML root document
+
+  if(test.file == "") {
+    # Get BGG XML
+    # BGG returns 202 on first API call, then 200 and data on subsequent calls
+    # so wait, loop, ask again
+    wait.for.secs <- 2 # see what I did there?
+    message(sprintf("Getting: %s", collection.path))
+    repeat {
+      r <- GET(collection.path)
+      message_for_status(r)
+      message("\n")
+      if(r$status_code == 202) {
+        # We didn't get the data, wait before trying again
+        message(sprintf("Waiting %s seconds to try again.\n", wait.for.secs))
+        Sys.sleep(wait.for.secs) # in seconds
+        wait.for.secs <- wait.for.secs + 1
+        next
+      } else if(r$status_code == 200) {
+        # We got the data, now parse it
+        break
+      } else {
+        # Other failure status code
+        stop(sprintf("Couldn't read %s, status code: %s.",
+                     collection.path, r$status_code))
+      }
+    }
+  } else {
+    # load test file
+    r <- test.file
+  }
+
+  # Use xmlParse and not xmlTreeParse so that:
+  # * the tree is represented in internal C instead of R
+  # * xpathApply() and others can operate on it
+  success <- try(collection.doc <- xmlParse(r))
+  if(!("XMLInternalDocument" %in% class(success))) {
+    stop("Couldn't parse XML.")
+  }
+  collection.root <- xmlRoot(collection.doc, skip=TRUE)
+  return(collection.root)
+}

@@ -25,6 +25,10 @@ GetGameRatings <- function(game.id, test.file="",
   item.attr <- unlist(xpathApply(collection.root, '//*/item', xmlAttrs)) # id, type
   id <- as.integer(item.attr["id"])
   type <- (unlist(item.attr["type"]))
+
+  name.attr <- unlist(xpathApply(collection.root, '//*/name', xmlAttrs)) # type, value
+  game <- (unlist(name.attr["value"]))
+
   description <- xpathSApply(collection.root, '//*/item/description', xmlValue)
   published <- as.integer(xpathSApply(collection.root, '//*/item/yearpublished', xmlAttrs))
   comments.attr <- unlist(xpathApply(collection.root, '//*/item/comments', xmlAttrs)) # page, totalitems
@@ -36,7 +40,7 @@ GetGameRatings <- function(game.id, test.file="",
   gamer <- comment.list["username", ]
   game.id <- rep(id, times=length(rating))
 
-  collection.tbl <- tibble(game.id, gamer, rating)
+  collection.tbl <- tibble(gamer, game, game.id, rating)
   return(collection.tbl)
 }
 

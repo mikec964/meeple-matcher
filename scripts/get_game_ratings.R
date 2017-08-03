@@ -1,7 +1,7 @@
 library(dplyr)
 library(XML)
 
-GetGameRatings <- function(game.id, test.file="",
+GetGameRatings <- function(game.id, test.file="", page=1,
                            use.cache=TRUE, make.cache=TRUE) {
   # Get ratings and gamers who have rated
   #
@@ -16,7 +16,8 @@ GetGameRatings <- function(game.id, test.file="",
   root.path <- "https://boardgamegeek.com/xmlapi2/"
   collection.params <- paste0("thing?",
                               "id=", game.id,
-                              "&ratingcomments=1")
+                              "&ratingcomments=1",
+                              "&page=", page)
   collection.path <- paste0(root.path, collection.params)
   collection.root <- GetBGGXML(collection.path, test.file,
                                use.cache, make.cache)
@@ -31,6 +32,7 @@ GetGameRatings <- function(game.id, test.file="",
 
   description <- xpathSApply(collection.root, '//*/item/description', xmlValue)
   published <- as.integer(xpathSApply(collection.root, '//*/item/yearpublished', xmlAttrs))
+
   comments.attr <- unlist(xpathApply(collection.root, '//*/item/comments', xmlAttrs)) # page, totalitems
   page <- as.integer(comments.attr["page"])
   number.comments <- as.integer(comments.attr["totalitems"])
@@ -38,6 +40,7 @@ GetGameRatings <- function(game.id, test.file="",
   comment.list <- xpathSApply(collection.root, '//*/item/comments/comment', xmlAttrs)
   rating <- as.integer(comment.list["rating", ])
   gamer <- comment.list["username", ]
+
   game.id <- rep(id, times=length(rating))
 
   collection.tbl <- tibble(gamer, game, game.id, rating)

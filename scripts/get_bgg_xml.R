@@ -16,7 +16,7 @@ GetBGGXML <- function(collection.path, test.file="",
   # collection.xml <- GetBGGXML(
   #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1")
   # ratings.xml <- GetBGGXML(
-  #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1")
+  #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&page=1&ratingcomments=1")
   #
   # Returns:
   #   The XML root document
@@ -29,12 +29,18 @@ GetBGGXML <- function(collection.path, test.file="",
     str_sub(cache.file,
             str_locate(cache.file, "[?]"),
             str_locate(cache.file, "[?]")) <- "-"
-    cache.file <- paste0("data/", cache.file, ".xml")
+
+    # Detect if page# > 1, then append page# to cache-file name.
+    page.num <- as.integer(str_extract(collection.path, "(?<=page=)\\d+"))
+    if(!is.na(page.num) && page.num > 1) {
+      cache.file <- paste0(cache.file, "-", page.num)
+    }
 
     if(file.exists("../data")) {
-      # When we run from the tests directory, we have to navigate to find the
-      # data folder.
-      cache.file <- paste0("../", cache.file)
+      # Adjust path if we're running from tests/ directory
+      cache.file <- paste0("../data/", cache.file, ".xml")
+    } else {
+      cache.file <- paste0("data/", cache.file, ".xml")
     }
 
     if(file.exists(cache.file)) {

@@ -3,7 +3,7 @@ test_that("GetGameRatings loads XML from server", {
   res2 <- evaluate_promise(GetGameRatings(game.id, "",
                                           use.cache=FALSE, make.cache=FALSE))
   expect_equal(res2$messages[1],
-               "Getting: https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1\n")
+               "Getting: https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=1\n")
 })
 
 test_that("GetGameRatings parses XML", {

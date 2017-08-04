@@ -1,9 +1,17 @@
 test_that("GetGameRatings loads XML from server", {
+  # Are we generating a good URL?
   game.id <- 38453
   res2 <- evaluate_promise(GetGameRatings(game.id, "",
                                           use.cache=FALSE, make.cache=FALSE))
   expect_equal(res2$messages[1],
                "Getting: https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=1\n")
+
+  # Test page 2 URL
+  res2 <- evaluate_promise(GetGameRatings(game.id, "", page=2,
+                                          use.cache=FALSE, make.cache=FALSE))
+  expect_equal(res2$messages[1],
+               "Getting: https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=2\n")
+
 })
 
 test_that("GetGameRatings parses XML", {
@@ -14,17 +22,11 @@ test_that("GetGameRatings parses XML", {
   res2 <- evaluate_promise(GetGameRatings(game.id, game.file))
   ratings.tbl <- res2$result
 
-  # Check the ratings
+  # Check the column types
+  #   gamer, game, game.id, rating
   item <- 1
-  expect_equal(ratings.tbl[[item, "game.id"]], game.id)
-  expect_equal(ratings.tbl[[item, "gamer"]], "Klinkenstecker")
-  expect_equal(ratings.tbl[[item, "rating"]], 10)
-
-  # Check a game that is on our wishlist
-  item <- 5
-  expect_equal(ratings.tbl[[item, "game.id"]], game.id)
-  expect_equal(ratings.tbl[[item, "gamer"]], "Rob132")
-  expect_equal(ratings.tbl[[item, "rating"]], 10)
-
+  expect_true(is.character(ratings.tbl[[item, "gamer"]]))
+  expect_true(is.character(ratings.tbl[[item, "game"]]))
+  expect_true(is.integer(ratings.tbl[[item, "game.id"]]))
+  expect_true(is.integer(ratings.tbl[[item, "rating"]]))
 })
-

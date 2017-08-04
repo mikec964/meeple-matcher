@@ -1,21 +1,21 @@
 library(dplyr)
 library(XML)
 
-GetGameRatings <- function(game.id, test.file="", page=1,
+GetGameRatings <- function(game.id1, test.file="", page=1,
                            use.cache=TRUE, make.cache=TRUE) {
   # Get ratings and gamers who have rated
   #
   # space_alert.df <- GetGameRatings(38453)
   # mc.df <- GetGameRatings(38453, "data/thing-id=38453.xml")
   #
-  # | gameid | gamername | rating |
-  # |--------|-----------|--------|
-  # | 38453  | mikec     | 6      |
-  # | 38453  | gamerdude | 7      |
+  # | gameid | game         | gamername | rating |
+  # |--------|--------------|-----------|--------|
+  # | 38453  | Space Alert  | mikec     | 6      |
+  # | 38453  | Space Alert  | gamerdude | 7      |
 
   root.path <- "https://boardgamegeek.com/xmlapi2/"
   collection.params <- paste0("thing?",
-                              "id=", game.id,
+                              "id=", game.id1,
                               "&ratingcomments=1",
                               "&page=", page)
   collection.path <- paste0(root.path, collection.params)
@@ -24,11 +24,11 @@ GetGameRatings <- function(game.id, test.file="", page=1,
 
   # Move into dataframe (from doc)
   item.attr <- unlist(xpathApply(collection.root, '//*/item', xmlAttrs)) # id, type
-  id <- as.integer(item.attr["id"])
+  game.id <- as.integer(item.attr["id"]) # Should be a list of IDs, all alike
   type <- (unlist(item.attr["type"]))
 
   name.attr <- unlist(xpathApply(collection.root, '//*/name', xmlAttrs)) # type, value
-  game <- (unlist(name.attr["value"]))
+  game <- (unlist(name.attr["value"])) # the name of the game
 
   description <- xpathSApply(collection.root, '//*/item/description', xmlValue)
   published <- as.integer(xpathSApply(collection.root, '//*/item/yearpublished', xmlAttrs))
@@ -41,9 +41,7 @@ GetGameRatings <- function(game.id, test.file="", page=1,
   rating <- as.integer(comment.list["rating", ])
   gamer <- comment.list["username", ]
 
-  game.id <- rep(id, times=length(rating))
-
-  collection.tbl <- tibble(gamer, game, game.id, rating)
-  return(collection.tbl)
+  ratings.tbl <- tibble(gamer, game, game.id, rating)
+  return(ratings.tbl)
 }
 

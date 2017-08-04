@@ -57,7 +57,7 @@ GetBGGXML <- function(collection.path, test.file="",
     repeat {
       r <- GET(collection.path)
       message_for_status(r)
-      if(r$status_code == 202) {
+      if(r$status_code == 202 || r$status_code == 429) {
         # We didn't get the data, wait before trying again
         message(sprintf("Waiting %s seconds to try again.\n", wait.for.secs))
         Sys.sleep(wait.for.secs) # in seconds

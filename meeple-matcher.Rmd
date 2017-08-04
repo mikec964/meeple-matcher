@@ -45,47 +45,61 @@ Note that for some customers, the number of columns might be different.
 If a customer has a game with wishlist=1, then for that row the column
 "wishlistpriority" is added.
 
-```{r echo=TRUE, message=TRUE, warning=TRUE}
+```{r echo=FALSE, message=FALSE, warning=TRUE}
 customer <- "mikec"
 collection.tbl <- GetGamerCollection(customer)
 head(collection.tbl)
 #eg.tbl <- GetGamerCollection("educatedgravy")
 #head(eg.df)
 ```
+
+
 # Per game, load the ratings
-We'll build a narrow ratings table with game.id, gamer, and rating columns.
-Possible problems ahead:
+For each game in the collection, we'll collect the data and ratings. The data
+are things like number of players and year published. Ratings is a list of
+potentially thousands of ratings between 1 and 10.
 
-* Each game could have 10,000 or more ratings...
+Sizing the data: Each game could have 10,000 or more ratings. The API delivers
+100 ratings at a time, so it could take 100 queries to load all for a game. 
+If the customer has 100 games, that's 10,000 queries!
 
-    * Reading ratings 100 at a time (per API) means 100 queries  
-    * If the customer has 100 games, that's 10,000 queries!
+I've written a simple cache system so that subsequent reads come from local
+storage.
 
-* Since ratings are sorted best to worst, and delivered in pages of 100,
-we could:
-
-    * Stop getting ratings below 5  
-    * Select some pages to sample
-
-For now:
-
-  * Load the first page of (100) ratings per game  
-  * Load a sample from the customer's collection
-
-```{r echo=TRUE, message=TRUE, warning=TRUE}
-s <- 10
-sample.tbl <- sample_n(collection.tbl, s)
-for(game in 1:s) {
-  message(sprintf("\nLoading ratings for %s: %s.", sample.tbl[game, "game"], sample.tbl[game, "game.id"]))
-  game.ratings.tbl <- GetGameRatings(sample.tbl[[game, "game.id"]])
-  if(game == 1) {
-    ratings.tbl <- game.ratings.tbl
+```{r echo=FALSE, message=FALSE, warning=TRUE}
+sample.tbl <- collection.tbl
+sample.tbl <- sample_n(collection.tbl, 2)  # Uncomment to load fewer games
+View(sample.tbl)
+for(g in 1:dim(sample.tbl)[1]) {
+#for(g in 1:2) {
+  game.id <- sample.tbl[[g, "game.id"]]
+  num.comments <- GetGameData(game.id)[[1, "comments"]]
+  num.pages <- as.integer(((num.comments - 1) / 100) + 1)
+  print(sprintf("Loading %s comments for %s, %s", num.comments, game.id, sample.tbl[[g, "game"]]))
+  if(g == 1) {
+    games.tbl <- GetGameData(game.id)
   } else {
-    ratings.tbl <- bind_rows(ratings.tbl, game.ratings.tbl)
+    games.tbl <- bind_rows(games.tbl, GetGameData(game.id))
+  }
+  for(p in 1:num.pages) {
+    if(g==1 && p == 1) {
+      ratings.tbl <- GetGameRatings(game.id, page=p)
+    } else {
+      ratings.tbl <- bind_rows(ratings.tbl, GetGameRatings(game.id, page=p))
+    }
   }
 }
-head(ratings.tbl)
+View(games.tbl)
+View(ratings.tbl)
 ```
+
+
+# Visualize the ratings
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+
+```
+
 
 # Rank gamers that are like the customer
 The general formula is:  
@@ -95,6 +109,7 @@ The general formula is:
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 
 ```
+
 
 # Per rating, load the gamer's collections
 We should make a unique list of gamer IDs that have rated games, then load

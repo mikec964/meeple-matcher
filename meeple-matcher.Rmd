@@ -68,15 +68,15 @@ storage.
 
 ```{r echo=FALSE, message=FALSE, warning=TRUE}
 sample.tbl <- collection.tbl
-sample.tbl <- sample_n(collection.tbl, 2)  # Uncomment to load fewer games
+# sample.tbl <- sample_n(collection.tbl, 2)  # Uncomment to load fewer games
 View(sample.tbl)
 for(g in 1:dim(sample.tbl)[1]) {
-#for(g in 1:2) {
   game.id <- sample.tbl[[g, "game.id"]]
   num.comments <- GetGameData(game.id)[[1, "comments"]]
   num.pages <- as.integer(((num.comments - 1) / 100) + 1)
-  print(sprintf("Loading %s comments for %s, %s", num.comments, game.id, sample.tbl[[g, "game"]]))
-  if(g == 1) {
+  print(sprintf("%s of %s, loading %s comments for %s, %s", 
+                g, dim(sample.tbl)[1], num.comments, game.id, sample.tbl[[g, "game"]]))
+  if(g == 1 && p == 1) {
     games.tbl <- GetGameData(game.id)
   } else {
     games.tbl <- bind_rows(games.tbl, GetGameData(game.id))

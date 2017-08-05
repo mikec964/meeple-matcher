@@ -68,8 +68,11 @@ GetBGGXML <- function(collection.path, test.file="",
     repeat {
       r <- GET(collection.path)
       message_for_status(r)
-      if(r$status_code == 202 || r$status_code == 429) {
+      if(r$status_code == 202 || r$status_code == 429 || r$status_code == 502) {
         # We didn't get the data, wait before trying again
+        # 202 Accepted
+        # 429 Too Many Requests
+        # 502 Bad Gateway
         message(sprintf("Waiting %s seconds to try again.\n", wait.for.secs))
         Sys.sleep(wait.for.secs) # in seconds
         wait.for.secs <- wait.for.secs + 1

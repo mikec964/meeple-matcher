@@ -9,7 +9,7 @@ test_that("GetGameData loads XML from server", {
 test_that("GetGameData parses XML", {
   # This tests from a file so we can check parsing
   game.id <- 38453
-  game.file <- "../data/thing-id=38453.xml"
+  game.file <- "../data/thing-id=38453/thing-id=38453-1.xml"
 
   res2 <- evaluate_promise(GetGameData(game.id, game.file))
   data.tbl <- res2$result

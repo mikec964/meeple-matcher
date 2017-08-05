@@ -3,7 +3,7 @@ library(stringr)
 library(XML)
 
 GetBGGXML <- function(collection.path, test.file="",
-                      use.cache=TRUE, make.cache=TRUE) {
+                      use.cache=TRUE, make.cache=TRUE, refresh.cache=FALSE) {
   # Get XML data from BGG or load from test file
   #
   # Args:
@@ -11,7 +11,8 @@ GetBGGXML <- function(collection.path, test.file="",
   #   test.file: If use.cache is FALSE, will load from here.
   #   use.cache: If TRUE, tries to load from disk, creating filename
   #   make.cache: If TRUE, saves the XML document to disk. Will overwrite
-  #     previous cache.
+  #     previous cache unless refresh.cache is FALSE.
+  #   refresh.cache: If FALSE, will not overwrite existing cache
   #
   # collection.xml <- GetBGGXML(
   #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1")
@@ -23,6 +24,10 @@ GetBGGXML <- function(collection.path, test.file="",
 
   if(use.cache || make.cache) {
     # create cache filename
+    # collection-username=mikec
+    # thing-id=38453/
+    #   thing-id=38453-1
+    #   thing-id=38453-2
     tStart <- str_locate(collection.path, "xmlapi2/")[2] + 1
     tEnd <- str_locate(collection.path, "&")[1] - 1
     cache.file <- substring(collection.path, tStart, tEnd)
@@ -30,21 +35,27 @@ GetBGGXML <- function(collection.path, test.file="",
             str_locate(cache.file, "[?]"),
             str_locate(cache.file, "[?]")) <- "-"
 
-    # Detect if page# > 1, then append page# to cache-file name.
-    page.num <- as.integer(str_extract(collection.path, "(?<=page=)\\d+"))
-    if(!is.na(page.num) && page.num > 1) {
+    if(dir.exists("../data/")) {
+      # Adjust path if we're running from tests/ directory
+      cache.dir <- "../data/"
+    } else {
+      cache.dir <- "data/"
+    }
+
+    # If page#, then append page# to cache-file name and create subdir
+    page.num <- str_extract(collection.path, "(?<=page=)\\d+")
+    if(!is.na(page.num)) {
+      cache.dir <- paste0(cache.dir, cache.file, "/")
+      if(!dir.exists(cache.dir)) { dir.create(cache.dir) }
       cache.file <- paste0(cache.file, "-", page.num)
     }
 
-    if(file.exists("../data")) {
-      # Adjust path if we're running from tests/ directory
-      cache.file <- paste0("../data/", cache.file, ".xml")
-    } else {
-      cache.file <- paste0("data/", cache.file, ".xml")
-    }
-
+    cache.file <- paste0(cache.dir, cache.file, ".xml")
     if(file.exists(cache.file)) {
+      cache.exists <- TRUE
       test.file <- cache.file
+    } else {
+      cache.exists <- FALSE
     }
   }
 
@@ -86,7 +97,7 @@ GetBGGXML <- function(collection.path, test.file="",
     stop("Couldn't parse XML.")
   }
   collection.root <- xmlRoot(collection.doc, skip=TRUE)
-  if(make.cache) {
+  if(make.cache && (!cache.exists || refresh.cache)) {
     message(sprintf("Caching: %s", cache.file))
     saveXML(collection.doc, file=cache.file)
   }

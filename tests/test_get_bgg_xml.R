@@ -21,12 +21,12 @@ test_that("GetBGGXML loads game ratings XML from server", {
                "Getting: https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=1\n")
 
   # Create a cache file for game 38453
-  tUrl <- "https://boardgamegeek.com/xmlapi2/thing?id=38453&page=1&ratingcomments=1"
+  tUrl <- "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=1"
   res.game.pg1 <- GetBGGXML(tUrl, use.cache=FALSE, make.cache=TRUE)
-  expect_true(file.exists("../data/thing-id=38453.xml") || file.exists("data/thing-id=38453.xml"))
+  expect_true(file.exists("../data/thing-id=38453/thing-id=38453-1.xml") || file.exists("data/thing-id=38453.xml"))
 
   # Create a page-2 cache file for game 38453
-  tUrl <- "https://boardgamegeek.com/xmlapi2/thing?id=38453&page=2&ratingcomments=1"
+  tUrl <- "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=2"
   res.game.pg2 <- GetBGGXML(tUrl, use.cache=FALSE, make.cache=TRUE)
-  expect_true(file.exists("../data/thing-id=38453-2.xml"))
+  expect_true(file.exists("../data/thing-id=38453/thing-id=38453-2.xml"))
 })

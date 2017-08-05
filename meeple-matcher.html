@@ -147,11 +147,6 @@ For gamers that are similar to the customer, load their collections. Games in th
 <div id="load-the-customers-collection" class="section level1">
 <h1>Load the customer’s collection</h1>
 <p>This is probably in the range of 10 to 200 games. Note that for some customers, the number of columns might be different. If a customer has a game with wishlist=1, then for that row the column “wishlistpriority” is added.</p>
-<pre class="r"><code>customer &lt;- &quot;mikec&quot;
-collection.tbl &lt;- GetGamerCollection(customer)</code></pre>
-<pre><code>## Loading: data/collection-username=mikec.xml</code></pre>
-<pre><code>## Caching: data/collection-username=mikec.xml</code></pre>
-<pre class="r"><code>head(collection.tbl)</code></pre>
 <pre><code>## # A tibble: 6 x 14
 ##   gamer                                          game game.id rating   own
 ##   &lt;chr&gt;                                         &lt;chr&gt;   &lt;int&gt;  &lt;int&gt; &lt;lgl&gt;
@@ -164,100 +159,207 @@ collection.tbl &lt;- GetGamerCollection(customer)</code></pre>
 ## # ... with 9 more variables: prevowned &lt;lgl&gt;, fortrade &lt;lgl&gt;, want &lt;lgl&gt;,
 ## #   wanttoplay &lt;lgl&gt;, wanttobuy &lt;lgl&gt;, wishlist &lt;lgl&gt;, preordered &lt;lgl&gt;,
 ## #   lastmodified &lt;date&gt;, wishlistpriority &lt;int&gt;</code></pre>
-<pre class="r"><code>#eg.tbl &lt;- GetGamerCollection(&quot;educatedgravy&quot;)
-#head(eg.df)</code></pre>
 </div>
 <div id="per-game-load-the-ratings" class="section level1">
 <h1>Per game, load the ratings</h1>
-<p>We’ll build a narrow ratings table with game.id, gamer, and rating columns. Possible problems ahead:</p>
-<ul>
-<li><p>Each game could have 10,000 or more ratings…</p>
-<ul>
-<li>Reading ratings 100 at a time (per API) means 100 queries<br />
-</li>
-<li>If the customer has 100 games, that’s 10,000 queries!</li>
-</ul></li>
-<li><p>Since ratings are sorted best to worst, and delivered in pages of 100, we could:</p>
-<ul>
-<li>Stop getting ratings below 5<br />
-</li>
-<li>Select some pages to sample</li>
-</ul></li>
-</ul>
-<p>For now:</p>
-<ul>
-<li>Load the first page of (100) ratings per game<br />
-</li>
-<li>Load a sample from the customer’s collection</li>
-</ul>
-<pre class="r"><code>s &lt;- 10
-sample.tbl &lt;- sample_n(collection.tbl, s)
-for(game in 1:s) {
-  message(sprintf(&quot;\nLoading ratings for %s: %s.&quot;, sample.tbl[game, &quot;game&quot;], sample.tbl[game, &quot;game.id&quot;]))
-  game.ratings.tbl &lt;- GetGameRatings(sample.tbl[[game, &quot;game.id&quot;]])
-  if(game == 1) {
-    ratings.tbl &lt;- game.ratings.tbl
-  } else {
-    ratings.tbl &lt;- bind_rows(ratings.tbl, game.ratings.tbl)
-  }
-}</code></pre>
-<pre><code>## 
-## Loading ratings for Diplomacy: 483.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=483&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=483.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Ransom: 114.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=114&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=114.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Zombie 15': 144826.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=144826&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=144826.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Galaxy Trucker: 31481.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=31481&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=31481.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Silent Death: 3895.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=3895&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=3895.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Citadels: 478.</code></pre>
-<pre><code>## Loading: data/thing-id=478.xml</code></pre>
-<pre><code>## Caching: data/thing-id=478.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Space Cadets: 123096.</code></pre>
-<pre><code>## Loading: data/thing-id=123096.xml</code></pre>
-<pre><code>## Caching: data/thing-id=123096.xml</code></pre>
-<pre><code>## 
-## Loading ratings for ...and then, we held hands.: 153999.</code></pre>
-<pre><code>## Loading: data/thing-id=153999.xml</code></pre>
-<pre><code>## Caching: data/thing-id=153999.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Dead of Winter: A Crossroads Game: 150376.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=150376&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=150376.xml</code></pre>
-<pre><code>## 
-## Loading ratings for Haunted Castle: 1307.</code></pre>
-<pre><code>## Getting: https://boardgamegeek.com/xmlapi2/thing?id=1307&amp;ratingcomments=1</code></pre>
-<pre><code>## OK (HTTP 200).</code></pre>
-<pre><code>## Caching: data/thing-id=1307.xml</code></pre>
-<pre class="r"><code>head(ratings.tbl)</code></pre>
-<pre><code>## # A tibble: 6 x 3
-##   game.id      gamer rating
-##     &lt;int&gt;      &lt;chr&gt;  &lt;int&gt;
-## 1     483      hixpe     10
-## 2     483  28lobster     10
-## 3     483  Kaneyashi     10
-## 4     483    drok012     10
-## 5     483    Imrihil     10
-## 6     483 vultanhawk     10</code></pre>
+<p>For each game in the collection, we’ll collect the data and ratings. The data are things like number of players and year published. Ratings is a list of potentially thousands of ratings between 1 and 10.</p>
+<p>Sizing the data: Each game could have 10,000 or more ratings. The API delivers 100 ratings at a time, so it could take 100 queries to load all for a game. If the customer has 100 games, that’s 10,000 queries!</p>
+<p>I’ve written a simple cache system so that subsequent reads come from local storage.</p>
+<pre><code>## # A tibble: 6 x 14
+##   gamer                                          game game.id rating   own
+##   &lt;chr&gt;                                         &lt;chr&gt;   &lt;int&gt;  &lt;int&gt; &lt;lgl&gt;
+## 1 mikec 1830: The Game of Railroads and Robber Barons     421      8 FALSE
+## 2 mikec                                    1st &amp; Goal   95105      4  TRUE
+## 3 mikec                                     7 Wonders   68448      7  TRUE
+## 4 mikec                                       Acquire       5      6  TRUE
+## 5 mikec                                      Ad Astra   38343     NA FALSE
+## 6 mikec                            Advanced Heroquest    1758     NA  TRUE
+## # ... with 9 more variables: prevowned &lt;lgl&gt;, fortrade &lt;lgl&gt;, want &lt;lgl&gt;,
+## #   wanttoplay &lt;lgl&gt;, wanttobuy &lt;lgl&gt;, wishlist &lt;lgl&gt;, preordered &lt;lgl&gt;,
+## #   lastmodified &lt;date&gt;, wishlistpriority &lt;int&gt;</code></pre>
+<pre><code>## [1] &quot;1 of 160, loading 3503 comments for 421, 1830: The Game of Railroads and Robber Barons&quot;
+## [1] &quot;2 of 160, loading 1256 comments for 95105, 1st &amp; Goal&quot;
+## [1] &quot;3 of 160, loading 53975 comments for 68448, 7 Wonders&quot;
+## [1] &quot;4 of 160, loading 15786 comments for 5, Acquire&quot;
+## [1] &quot;5 of 160, loading 2606 comments for 38343, Ad Astra&quot;
+## [1] &quot;6 of 160, loading 1020 comments for 1758, Advanced Heroquest&quot;
+## [1] &quot;7 of 160, loading 709 comments for 140865, Agent Hunter&quot;
+## [1] &quot;8 of 160, loading 5549 comments for 90419, Airlines Europe&quot;
+## [1] &quot;9 of 160, loading 1841 comments for 154458, Akrotiri&quot;
+## [1] &quot;10 of 160, loading 11583 comments for 48726, Alien Frontiers&quot;
+## [1] &quot;11 of 160, loading 647 comments for 1770, Aliens&quot;
+## [1] &quot;12 of 160, loading 5301 comments for 110277, Among the Stars&quot;
+## [1] &quot;13 of 160, loading 1191 comments for 153999, ...and then, we held hands.&quot;
+## [1] &quot;14 of 160, loading 3351 comments for 39339, Android&quot;
+## [1] &quot;15 of 160, loading 4337 comments for 19600, Antike&quot;
+## [1] &quot;16 of 160, loading 30727 comments for 15987, Arkham Horror&quot;
+## [1] &quot;17 of 160, loading 777 comments for 92120, Atlantis Rising&quot;
+## [1] &quot;18 of 160, loading 4813 comments for 39351, Automobile&quot;
+## [1] &quot;19 of 160, loading 1 comments for 225766, Awful Fantasy Adventures&quot;
+## [1] &quot;20 of 160, loading 67 comments for 6705, Batman: Gotham City Mystery&quot;
+## [1] &quot;21 of 160, loading 675 comments for 130911, Batman: Gotham City Strategy Game&quot;
+## [1] &quot;22 of 160, loading 9 comments for 9544, Batman: The Animated Series – 3D Board Game&quot;
+## [1] &quot;23 of 160, loading 26063 comments for 37111, Battlestar Galactica&quot;
+## [1] &quot;24 of 160, loading 905 comments for 12350, Battlestations&quot;
+## [1] &quot;25 of 160, loading 12 comments for 196712, Battlestations: Second Edition&quot;
+## [1] &quot;26 of 160, loading 261 comments for 40, Borderlands&quot;
+## [1] &quot;27 of 160, loading 8179 comments for 131835, Boss Monster: The Dungeon Building Card Game&quot;
+## [1] &quot;28 of 160, loading 1542 comments for 805, Buffy the Vampire Slayer: The Game&quot;
+## [1] &quot;29 of 160, loading 465 comments for 30057, Burger Joint&quot;
+## [1] &quot;30 of 160, loading 798 comments for 159503, The Captain Is Dead&quot;
+## [1] &quot;31 of 160, loading 5062 comments for 171131, Captain Sonar&quot;
+## [1] &quot;32 of 160, loading 70229 comments for 13, Catan&quot;
+## [1] &quot;33 of 160, loading 13195 comments for 926, Catan: Cities &amp; Knights&quot;
+## [1] &quot;34 of 160, loading 3055 comments for 4101, Catan: Cities &amp; Knights – 5-6 Player Extension&quot;
+## [1] &quot;35 of 160, loading 22285 comments for 18602, Caylus&quot;
+## [1] &quot;36 of 160, loading 38690 comments for 478, Citadels&quot;
+## [1] &quot;37 of 160, loading 5310 comments for 201808, Clank!: A Deck-Building Adventure&quot;
+## [1] &quot;38 of 160, loading 32577 comments for 178900, Codenames&quot;
+## [1] &quot;39 of 160, loading 3384 comments for 98351, Core Worlds&quot;
+## [1] &quot;40 of 160, loading 880 comments for 40529, Cosmic Encounter&quot;
+## [1] &quot;41 of 160, loading 22021 comments for 131357, Coup&quot;
+## [1] &quot;42 of 160, loading 961 comments for 147, Crude: The Oil Game&quot;
+## [1] &quot;43 of 160, loading 222 comments for 128137, Damage Report&quot;
+## [1] &quot;44 of 160, loading 130 comments for 99130, Dawn of the Zeds (First edition)&quot;
+## [1] &quot;45 of 160, loading 24377 comments for 150376, Dead of Winter: A Crossroads Game&quot;
+## [1] &quot;46 of 160, loading 3077 comments for 169654, Deep Sea Adventure&quot;
+## [1] &quot;47 of 160, loading 10108 comments for 483, Diplomacy&quot;
+## [1] &quot;48 of 160, loading 209 comments for 2949, Dune: Spice Harvest&quot;
+## [1] &quot;49 of 160, loading 4109 comments for 102548, Dungeon Fighter&quot;
+## [1] &quot;50 of 160, loading 20921 comments for 72125, Eclipse&quot;
+## [1] &quot;51 of 160, loading 15929 comments for 100423, Elder Sign&quot;
+## [1] &quot;52 of 160, loading 605 comments for 98347, Empires of the Void&quot;
+## [1] &quot;53 of 160, loading 58 comments for 183649, Escape the Nightmare&quot;
+## [1] &quot;54 of 160, loading 11906 comments for 113294, Escape: The Curse of the Temple&quot;
+## [1] &quot;55 of 160, loading 4164 comments for 1159, Evo&quot;
+## [1] &quot;56 of 160, loading 7578 comments for 155703, Evolution&quot;
+## [1] &quot;57 of 160, loading 1197 comments for 122842, Exodus: Proxima Centauri&quot;
+## [1] &quot;58 of 160, loading 2 comments for 220792, The Expanse Board Game&quot;
+## [1] &quot;59 of 160, loading 414 comments for 176371, Explorers of the North Sea&quot;
+## [1] &quot;60 of 160, loading 1219 comments for 135779, A Fake Artist Goes to New York&quot;
+## [1] &quot;61 of 160, loading 7242 comments for 138161, Firefly: The Game&quot;
+## [1] &quot;62 of 160, loading 14290 comments for 100901, Flash Point: Fire Rescue&quot;
+## [1] &quot;63 of 160, loading 5571 comments for 175914, Food Chain Magnate&quot;
+## [1] &quot;64 of 160, loading 4687 comments for 121, Frank Herbert's Dune&quot;
+## [1] &quot;65 of 160, loading 21375 comments for 31481, Galaxy Trucker&quot;
+## [1] &quot;66 of 160, loading 167 comments for 41032, Galaxy's Edge&quot;
+## [1] &quot;67 of 160, loading 14594 comments for 37046, Ghost Stories&quot;
+## [1] &quot;68 of 160, loading 898 comments for 110524, Goblins, Inc.&quot;
+## [1] &quot;69 of 160, loading 6331 comments for 171668, The Grizzled&quot;
+## [1] &quot;70 of 160, loading 1436 comments for 38765, Ground Floor&quot;
+## [1] &quot;71 of 160, loading 25148 comments for 98778, Hanabi&quot;
+## [1] &quot;72 of 160, loading 76 comments for 1307, Haunted Castle&quot;
+## [1] &quot;73 of 160, loading 19532 comments for 35677, Le Havre&quot;
+## [1] &quot;74 of 160, loading 482 comments for 92666, Hegemonic&quot;
+## [1] &quot;75 of 160, loading 8494 comments for 699, HeroQuest&quot;
+## [1] &quot;76 of 160, loading 142 comments for 62809, Jump Gate&quot;
+## [1] &quot;77 of 160, loading 296 comments for 137900, Jupiter Rescue&quot;
+## [1] &quot;78 of 160, loading 5432 comments for 257, Kill Doctor Lucky&quot;
+## [1] &quot;79 of 160, loading 2107 comments for 55690, Kingdom Death: Monster&quot;
+## [1] &quot;80 of 160, loading 1359 comments for 115105, Kittens in a Blender&quot;
+## [1] &quot;81 of 160, loading 888 comments for 173064, Leaving Earth&quot;
+## [1] &quot;82 of 160, loading 8314 comments for 127398, Legends of Andor&quot;
+## [1] &quot;83 of 160, loading 1496 comments for 137649, Level 7 [Omega Protocol]&quot;
+## [1] &quot;84 of 160, loading 9251 comments for 125618, Libertalia&quot;
+## [1] &quot;85 of 160, loading 3049 comments for 249, Lifeboats&quot;
+## [1] &quot;86 of 160, loading 12081 comments for 823, Lord of the Rings&quot;
+## [1] &quot;87 of 160, loading 130 comments for 284, Lords of the Sierra Madre (second edition)&quot;
+## [1] &quot;88 of 160, loading 30339 comments for 110327, Lords of Waterdeep&quot;
+## [1] &quot;89 of 160, loading 38162 comments for 129622, Love Letter&quot;
+## [1] &quot;90 of 160, loading 3759 comments for 199, Manhattan&quot;
+## [1] &quot;91 of 160, loading 2109 comments for 232, Méditerranée&quot;
+## [1] &quot;92 of 160, loading 19977 comments for 10630, Memoir '44&quot;
+## [1] &quot;93 of 160, loading 2445 comments for 230, Merchant of Venus&quot;
+## [1] &quot;94 of 160, loading 9927 comments for 25292, Merchants &amp; Marauders&quot;
+## [1] &quot;95 of 160, loading 1446 comments for 531, Merchants of Amsterdam&quot;
+## [1] &quot;96 of 160, loading 11312 comments for 124708, Mice and Mystics&quot;
+## [1] &quot;97 of 160, loading 4605 comments for 176920, Mission: Red Planet (Second Edition)&quot;
+## [1] &quot;98 of 160, loading 11697 comments for 118, Modern Art&quot;
+## [1] &quot;99 of 160, loading 13554 comments for 181304, Mysterium&quot;
+## [1] &quot;100 of 160, loading 3475 comments for 194607, Mystic Vale&quot;
+## [1] &quot;101 of 160, loading 10160 comments for 21241, Neuroshima Hex!&quot;
+## [1] &quot;102 of 160, loading 1762 comments for 5406, New England&quot;
+## [1] &quot;103 of 160, loading 6395 comments for 1234, Once Upon a Time: The Storytelling Card Game&quot;
+## [1] &quot;104 of 160, loading 1500 comments for 179275, One Deck Dungeon&quot;
+## [1] &quot;105 of 160, loading 4183 comments for 71836, Onirim&quot;
+## [1] &quot;106 of 160, loading 65360 comments for 30549, Pandemic&quot;
+## [1] &quot;107 of 160, loading 19356 comments for 161936, Pandemic Legacy: Season 1&quot;
+## [1] &quot;108 of 160, loading 491 comments for 124047, Pirate Dice: Voyage on the Rolling Seas&quot;
+## [1] &quot;109 of 160, loading 4107 comments for 180974, Potion Explosion&quot;
+## [1] &quot;110 of 160, loading 1217 comments for 87890, Prêt-à-Porter&quot;
+## [1] &quot;111 of 160, loading 35320 comments for 28143, Race for the Galaxy&quot;
+## [1] &quot;112 of 160, loading 71 comments for 114, Ransom&quot;
+## [1] &quot;113 of 160, loading 6926 comments for 36946, Red November&quot;
+## [1] &quot;114 of 160, loading 3461 comments for 1513, The Republic of Rome&quot;
+## [1] &quot;115 of 160, loading 16806 comments for 128882, The Resistance: Avalon&quot;
+## [1] &quot;116 of 160, loading 62 comments for 42789, Restaurant Row&quot;
+## [1] &quot;117 of 160, loading 535 comments for 91189, Ristorante Italia&quot;
+## [1] &quot;118 of 160, loading 19794 comments for 18, RoboRally&quot;
+## [1] &quot;119 of 160, loading 1306 comments for 1569, RoboRally: Armed and Dangerous&quot;
+## [1] &quot;120 of 160, loading 15413 comments for 132531, Roll for the Galaxy&quot;
+## [1] &quot;121 of 160, loading 11619 comments for 102652, Sentinels of the Multiverse&quot;
+## [1] &quot;122 of 160, loading 11595 comments for 2807, The Settlers of Catan: 5-6 Player Expansion&quot;
+## [1] &quot;123 of 160, loading 20737 comments for 15062, Shadows over Camelot&quot;
+## [1] &quot;124 of 160, loading 2465 comments for 35704, Shadows over Camelot: Merlin's Company&quot;
+## [1] &quot;125 of 160, loading 130 comments for 178450, Side Quest&quot;
+## [1] &quot;126 of 160, loading 389 comments for 3895, Silent Death&quot;
+## [1] &quot;127 of 160, loading 6083 comments for 92415, Skull&quot;
+## [1] &quot;128 of 160, loading 44714 comments for 40692, Small World&quot;
+## [1] &quot;129 of 160, loading 12100 comments for 38453, Space Alert&quot;
+## [1] &quot;130 of 160, loading 889 comments for 61492, Space Alert: The New Frontier&quot;
+## [1] &quot;131 of 160, loading 2780 comments for 123096, Space Cadets&quot;
+## [1] &quot;132 of 160, loading 300 comments for 66781, Space Infantry&quot;
+## [1] &quot;133 of 160, loading 3697 comments for 155624, Specter Ops&quot;
+## [1] &quot;134 of 160, loading 1013 comments for 1194, Speed Circuit&quot;
+## [1] &quot;135 of 160, loading 11194 comments for 166384, Spyfall&quot;
+## [1] &quot;136 of 160, loading 3554 comments for 102104, Star Fluxx&quot;
+## [1] &quot;137 of 160, loading 810 comments for 178613, Star Trek: Five-Year Mission&quot;
+## [1] &quot;138 of 160, loading 4441 comments for 1897, Starfarers of Catan&quot;
+## [1] &quot;139 of 160, loading 844 comments for 4100, Starfarers of Catan: 5-6 Player Expansion&quot;
+## [1] &quot;140 of 160, loading 31594 comments for 34635, Stone Age&quot;
+## [1] &quot;141 of 160, loading 11576 comments for 146508, T.I.M.E Stories&quot;
+## [1] &quot;142 of 160, loading 12424 comments for 167791, Terraforming Mars&quot;
+## [1] &quot;143 of 160, loading 15631 comments for 25613, Through the Ages: A Story of Civilization&quot;
+## [1] &quot;144 of 160, loading 9107 comments for 53953, Thunderstone&quot;
+## [1] &quot;145 of 160, loading 237 comments for 311, Time Agent&quot;
+## [1] &quot;146 of 160, loading 982 comments for 128664, Timeline&quot;
+## [1] &quot;147 of 160, loading 5329 comments for 85256, Timeline: Inventions&quot;
+## [1] &quot;148 of 160, loading 6778 comments for 163967, Tiny Epic Galaxies&quot;
+## [1] &quot;149 of 160, loading 617 comments for 135243, Triassic Terror&quot;
+## [1] &quot;150 of 160, loading 11760 comments for 73439, Troyes&quot;
+## [1] &quot;151 of 160, loading 15830 comments for 16992, Tsuro&quot;
+## [1] &quot;152 of 160, loading 1804 comments for 170416, Vast: The Crystal Caverns&quot;
+## [1] &quot;153 of 160, loading 1004 comments for 109125, Wallenstein (second edition)&quot;
+## [1] &quot;154 of 160, loading 2028 comments for 1634, Warhammer Quest&quot;
+## [1] &quot;155 of 160, loading 3212 comments for 181521, Warhammer Quest: The Adventure Card Game&quot;
+## [1] &quot;156 of 160, loading 7287 comments for 25821, The Werewolves of Miller's Hollow&quot;
+## [1] &quot;157 of 160, loading 934 comments for 71655, Wok Star&quot;
+## [1] &quot;158 of 160, loading 3652 comments for 82222, Xia: Legends of a Drift System&quot;
+## [1] &quot;159 of 160, loading 1398 comments for 144826, Zombie 15'&quot;
+## [1] &quot;160 of 160, loading 12847 comments for 2471, Zombies!!!&quot;</code></pre>
+<pre><code>## # A tibble: 6 x 9
+##                             game yearpublished minplayers maxplayers
+##                            &lt;chr&gt;         &lt;int&gt;      &lt;int&gt;      &lt;int&gt;
+## 1 1830: Railways &amp; Robber Barons          1986          2          7
+## 2                     1st &amp; Goal          2011          2          4
+## 3                      7 Wonders          2010          2          7
+## 4                        Acquire          1964          3          6
+## 5                       Ad Astra          2009          3          5
+## 6             Advanced Heroquest          1989          1          5
+## # ... with 5 more variables: minage &lt;int&gt;, minplaytime &lt;int&gt;,
+## #   maxplaytime &lt;int&gt;, comments &lt;int&gt;, description &lt;chr&gt;</code></pre>
+<pre><code>## # A tibble: 6 x 4
+##        gamer                           game game.id rating
+##        &lt;chr&gt;                          &lt;chr&gt;   &lt;int&gt;  &lt;int&gt;
+## 1 HamHam2000 1830: Railways &amp; Robber Barons     421     10
+## 2    GRYPHUS 1830: Railways &amp; Robber Barons     421     10
+## 3     chamel 1830: Railways &amp; Robber Barons     421     10
+## 4   wkilgore 1830: Railways &amp; Robber Barons     421     10
+## 5  jhammer76 1830: Railways &amp; Robber Barons     421     10
+## 6     Pielso 1830: Railways &amp; Robber Barons     421     10</code></pre>
+</div>
+<div id="visualize-the-ratings" class="section level1">
+<h1>Visualize the ratings</h1>
 </div>
 <div id="rank-gamers-that-are-like-the-customer" class="section level1">
 <h1>Rank gamers that are like the customer</h1>

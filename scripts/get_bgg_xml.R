@@ -2,6 +2,8 @@ library(httr)
 library(stringr)
 library(XML)
 
+kCacheName <- "xmlcache/"  # This matches get_bgg_xml.R
+
 GetBGGXML <- function(collection.path, test.file="",
                       use.cache=TRUE, make.cache=TRUE, refresh.cache=FALSE) {
   # Get XML data from BGG or load from test file
@@ -35,11 +37,11 @@ GetBGGXML <- function(collection.path, test.file="",
             str_locate(cache.file, "[?]"),
             str_locate(cache.file, "[?]")) <- "-"
 
-    if(dir.exists("../data/")) {
+    if(dir.exists(paste0("../", kCacheName))) {
       # Adjust path if we're running from tests/ directory
-      cache.dir <- "../data/"
+      cache.dir <- paste0("../", kCacheName)
     } else {
-      cache.dir <- "data/"
+      cache.dir <- kCacheName
     }
 
     # If page#, then append page# to cache-file name and create subdir

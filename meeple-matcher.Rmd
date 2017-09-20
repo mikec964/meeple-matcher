@@ -1,7 +1,7 @@
 ---
 title: "meep-matcher.Rmd"
 author: "mikec964"
-date: "8/1/2017"
+date: "9/20/2017"
 output: html_document
 ---
 
@@ -27,17 +27,14 @@ We'll build a Collections table with a row per game.
 For each game in the customer's collection, get the gamers that also rated
 it. Row per gamer/rating.
 
-    * Request all of these in parallel, pause, then load what we can  
-    * Add to Ratings table
+3. **Load collections of gamers with games in common**  
+This can be a big list, so first apply a basic filter or take a sample.
 
-3. **Rank gamers that are like the customer.**
-
-4. **Per ranking, load the gamer's collections.**  
-For gamers that are similar to the customer, load their collections. Games
+For selected gamers, load their collections. Games
 in their collections that are unknown to the customer are possible
 recommendations.
 
-    * Request all of these in parallel, pause, then load what we can
+4. **Rank gamers to make recommendations**
 
 
 # Load the customer's collection
@@ -50,8 +47,15 @@ If a customer has a game with wishlist=1, then for that row the column
 customer <- "mikec"
 collection.tbl <- GetGamerCollection(customer)
 head(collection.tbl)
-#eg.tbl <- GetGamerCollection("educatedgravy")
-#head(eg.df)
+```
+
+## Explore the customer
+* What's the distribution of their ratings?
+* Distribution of game attributes: published, categories, mechanics, #players, playtime
+* Correlation between ratings and attributes
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+
 ```
 
 
@@ -101,35 +105,27 @@ write_delim(games.tbl, "tables/games.tsv", delim = "\t", na = "NA", append = FAL
 ```
 
 
-## Visualize the ratings
+## Explore games
+* How well-known are the games (how many ratings each)?
+* How well-regarded are the games (mean, sd, scatter of ratings)?
+* When were the games published?
+* Which game categories dominate?
+* Which game mechanics dominate?
+* Which game designers dominate?
+* Which game publishers dominate?
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 
 ```
 
 
-# Rank gamers that are like the customer
-The general formula is:  
-  * For the games we have rated, find gamers who have rated them similarly  
-  * The more games they agree with us on, the better
-
+# Load collections of gamers with games in common
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Get unique gamers
+# For now, we ignore every good idea above and just select 500 at random
 adjacent_gamers <- unique(ratings.tbl$gamer)
 selected_gamers <- sample(adjacent_gamers, 500) # 154K adjacent, use only 500
 
-# Count games rated by each
-
-# Keep gamers within 1 SD of mean
-
-```
-
-
-# Per rating, load the gamer's collections
-We should make a unique list of gamer IDs that have rated games, then load
-their collections.
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
 for(gamer in selected_gamers) {
   print(sprintf("loading: %s", gamer))
   gamer_collection.tbl <- GetGamerCollection(gamer)
@@ -140,4 +136,23 @@ for(gamer in selected_gamers) {
     }
 }
 ```
+
+## Explore gamers
+* How many games do gamers rate?
+* What is distribution of their ratings?
+* Distribution of game attributes: published, categories, mechanics, #players, playtime
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+
+```
+
+# Rank gamers to make recommendations
+The general idea is:  
+  * For the games we have rated, find gamers who have rated them similarly  
+  * The more games they agree with us on, the better
+  * If we agree on a game that everyone agrees on, weigh that less
+  * If we strongly agree, weigh that more
+  * If we agree on category, weigh that more
+  * If we agree on mechanics, weigh that more
+  * If they haven't rated many games, weigh them less
 

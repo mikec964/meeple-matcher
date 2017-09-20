@@ -6,6 +6,14 @@ test_that("GetGamerCollection loads XML from server", {
                "Getting: https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1\n")
 })
 
+test_that("User names are properly encoded", {
+  customer <- "romance wei"
+  res1 <- evaluate_promise(GetGamerCollection(customer, "",
+                                              use.cache=FALSE, make.cache=FALSE))
+  expect_equal(res1$messages[1],
+               "Getting: https://boardgamegeek.com/xmlapi2/collection?username=romance%20wei&subtype=boardgame&stats=1&brief=1\n")
+})
+
 test_that("GetGamerCollection parses XML", {
   # This tests from a file so we can check parsing
   customer <- "mikec"

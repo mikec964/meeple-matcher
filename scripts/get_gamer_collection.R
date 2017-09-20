@@ -1,4 +1,5 @@
 library(dplyr)
+library(htmltools)
 library(XML)
 
 GetGamerCollection <- function(gamer.name, test.file="",
@@ -28,8 +29,9 @@ GetGamerCollection <- function(gamer.name, test.file="",
   #   | mikec     | Ad Astra    | 38343   | 10      | 0   | 1 |
 
   root.path <- "https://boardgamegeek.com/xmlapi2/"
+  gamer.name.encoded <- urlEncodePath(gamer.name)
   collection.params <- paste0("collection?",
-                              "username=", gamer.name,
+                              "username=", gamer.name.encoded,
                               "&subtype=boardgame",
                               "&stats=1",
                               "&brief=1")

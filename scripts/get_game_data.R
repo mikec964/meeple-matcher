@@ -58,11 +58,10 @@ GetGameData <- function(game.id, test.file="",
   tags <- c("boardgamecategory", "boardgamemechanic", "boardgamefamily",
             "boardgameexpansion", "boardgamedesigner", "boardgameartist",
             "boardgamepublisher")
-  bg.category <- xpathSApply(game.root, '//*/item/link', xmlAttrs)
-  bgl <- dim(bg.category)[2]
-  for(i in 1:bgl) {
+  bg.category <- xpathApply(game.root, '//*/item/link', xmlAttrs)
+  for(i in 1:length(bg.category)) {
     game.tidy <- bind_rows(game.tidy, data_frame(
-      game.id, key=bg.category["type", i], value=bg.category["value", i]))
+      game.id, key=bg.category[[i]]["type"], value=bg.category[[i]]["value"]))
   }
 
   return(game.tidy)

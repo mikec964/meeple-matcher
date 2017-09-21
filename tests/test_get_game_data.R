@@ -14,19 +14,27 @@ test_that("GetGameData parses XML", {
   res2 <- evaluate_promise(GetGameData(game.id, "",
                                        use.cache=TRUE, make.cache=FALSE))
   data.tbl <- res2$result
+})
 
-  # Check that it has the columns we want
-  # game.tbl <- tibble(game, yearpublished, minplayers, maxplayers, minage,
-                     # minplaytime, maxplaytime, comments, description)
+test_that("GetGameData finds required fields and tags", {
+  game.id <- 38453
+  res2 <- evaluate_promise(GetGameData(game.id, "",
+                                       use.cache=TRUE, make.cache=FALSE))
+  data.tbl <- res2$result
 
-  expect_true(is.character(data.tbl[["game"]]))
-  expect_true(is.integer(data.tbl[["yearpublished"]]))
-  expect_true(is.integer(data.tbl[["minplayers"]]))
-  expect_true(is.integer(data.tbl[["maxplayers"]]))
-  expect_true(is.integer(data.tbl[["minage"]]))
-  expect_true(is.integer(data.tbl[["minplaytime"]]))
-  expect_true(is.integer(data.tbl[["maxplaytime"]]))
-  expect_true(is.integer(data.tbl[["comments"]]))
-  expect_true(is.character(data.tbl[["description"]]))
+  # Check that it has the observations we want
+  fields <- c("game", "type", "description", "yearpublished", "minage",
+              "minplayers", "maxplayers", "minplaytime", "maxplaytime",
+              "comments")
+#  tags <- c("boardgamecategory", "boardgamemechanic", "boardgamefamily",
+#            "boardgameexpansion", "boardgamedesigner", "boardgameartist",
+#            "boardgamepublisher")
+  for(tKey in fields) {
+    expect_gte(dim(data.tbl[data.tbl$key == tKey, ])[1], 1)
+  }
+  for(tKey in c("boardgamecategory", "boardgamemechanic",
+                "boardgamepublisher")) {
+    expect_gte(dim(data.tbl[data.tbl$key == tKey, ])[1], 1)
+  }
 })
 

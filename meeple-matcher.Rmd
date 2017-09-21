@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(readr)
+library(tidyr)
 file.sources = list.files(c("scripts"),
                           pattern="*.R$", full.names=TRUE,
                           ignore.case=TRUE)
@@ -145,8 +146,12 @@ ggplot(rated.games, aes(rating)) +
   geom_bar(fill="#6ec75c")
 
 # Do I like new games better?
-rated.games1 <- rated.games %>%
-  left_join()
+published <- spread(attrs[attrs$key == "yearpublished",], key, value)
+rated2 <- left_join(rated.games, published)
+ggplot(rated2, aes(x=yearpublished, y=rating)) +
+  geom_point(alpha=0.5, color="#c46c5b")
+ggplot(rated2, aes(x=yearpublished, y=rating)) +
+  geom_jitter(alpha=0.5, color="#c45b9f")
 ```
 
 ## Explore gamers

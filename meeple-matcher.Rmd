@@ -1,13 +1,14 @@
 ---
 title: "meep-matcher.Rmd"
 author: "mikec964"
-date: "9/20/2017"
+date: "9/21/2017"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
+library(ggplot2)
 library(readr)
 file.sources = list.files(c("scripts"),
                           pattern="*.R$", full.names=TRUE,
@@ -34,7 +35,11 @@ For selected gamers, load their collections. Games
 in their collections that are unknown to the customer are possible
 recommendations.
 
-4. **Rank gamers to make recommendations**
+4. **Explore the data**
+Look at the customer's preferences, game attributes, and preferences of
+adjacent gamers in order to suggest recommendation algorithms and weights.
+
+5. **Rank gamers to make recommendations**
 
 
 # Load the customer's collection
@@ -47,15 +52,6 @@ If a customer has a game with wishlist=1, then for that row the column
 customer <- "mikec"
 collection.tbl <- GetGamerCollection(customer)
 head(collection.tbl)
-```
-
-## Explore the customer
-* What's the distribution of their ratings?
-* Distribution of game attributes: published, categories, mechanics, #players, playtime
-* Correlation between ratings and attributes
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-
 ```
 
 
@@ -79,12 +75,12 @@ for(g in 1:dim(sample.tbl)[1]) {
   game.id <- sample.tbl[[g, "game.id"]]
   num.comments <- GetGameData(game.id)[[1, "comments"]]
   num.pages <- as.integer(((num.comments - 1) / 100) + 1)
-  print(sprintf("%s of %s, loading %s comments for %s, %s", 
+  print(sprintf("%s of %s, loading %s comments for %s, %s",
                 g, dim(sample.tbl)[1], num.comments, game.id, sample.tbl[[g, "game"]]))
   if(g == 1) {
-    games.tbl <- GetGameData(game.id)
+    attrs <- GetGameData(game.id)
   } else {
-    games.tbl <- bind_rows(games.tbl, GetGameData(game.id))
+    attrs <- bind_rows(attrs, GetGameData(game.id))
   }
   for(p in 1:num.pages) {
     if(g==1 && p == 1) {
@@ -94,7 +90,7 @@ for(g in 1:dim(sample.tbl)[1]) {
     }
   }
 }
-head(games.tbl)
+head(attrs)
 head(ratings.tbl)
 
 write_delim(ratings.tbl, "tables/ratings.tbl", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
@@ -105,26 +101,26 @@ write_delim(games.tbl, "tables/games.tsv", delim = "\t", na = "NA", append = FAL
 ```
 
 
-## Explore games
-* How well-known are the games (how many ratings each)?
-* How well-regarded are the games (mean, sd, scatter of ratings)?
-* When were the games published?
-* Which game categories dominate?
-* Which game mechanics dominate?
-* Which game designers dominate?
-* Which game publishers dominate?
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-
-```
-
-
 # Load collections of gamers with games in common
+My collection of 70 games has a total of 1,349K ratings, from 154K gamers.
+All of these gamers have at least one game in common with me. For some of
+them we'll download their collections.
+
+We should prioritize gamers by number of games in common with me.
+
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Get unique gamers
 # For now, we ignore every good idea above and just select 500 at random
 adjacent_gamers <- unique(ratings.tbl$gamer)
-selected_gamers <- sample(adjacent_gamers, 500) # 154K adjacent, use only 500
+fresh_data <- TRUE
+if(fresh_data) {
+  # Select new gamers, probably download data for them
+  selected_gamers <- sample(adjacent_gamers, 500) # 154K adjacent, use only 500
+  write_lines(selected_gamers, "tables/selected-gamers.tsv")
+} else {
+  # Use previously selected gamers, probably read cached data for them
+  selected_gamers <- read_lines("tables/selected-gamers.tsv")
+}
 
 for(gamer in selected_gamers) {
   print(sprintf("loading: %s", gamer))
@@ -137,6 +133,22 @@ for(gamer in selected_gamers) {
 }
 ```
 
+# Explore the data
+## Explore the customer
+* What's the distribution of his/her ratings?
+* Distribution of game attributes: published, categories, mechanics, #players, playtime
+* Correlation between ratings and attributes
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+rated.games <- collection.tbl[!is.na(collection.tbl$rating),]
+ggplot(rated.games, aes(rating)) +
+  geom_bar(fill="#6ec75c")
+
+# Do I like new games better?
+rated.games1 <- rated.games %>%
+  left_join()
+```
+
 ## Explore gamers
 * How many games do gamers rate?
 * What is distribution of their ratings?
@@ -145,6 +157,16 @@ for(gamer in selected_gamers) {
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 
 ```
+
+## Explore games
+* How well-known are the games (how many ratings each)?
+* How well-regarded are the games (mean, sd, scatter of ratings)?
+* When were the games published?
+* Which game categories dominate?
+* Which game mechanics dominate?
+* Which game designers dominate?
+* Which game publishers dominate?
+
 
 # Rank gamers to make recommendations
 The general idea is:  
@@ -155,4 +177,9 @@ The general idea is:
   * If we agree on category, weigh that more
   * If we agree on mechanics, weigh that more
   * If they haven't rated many games, weigh them less
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+
+```
+
 

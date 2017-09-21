@@ -20,6 +20,8 @@ GetBGGXML <- function(collection.path, test.file="",
   #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1")
   # ratings.xml <- GetBGGXML(
   #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=1")
+  # game.xml <- GetBGGXML(
+  #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1")
   #
   # Returns:
   #   The XML root document

@@ -2,5 +2,4 @@
 .Rhistory
 /rsconnect
 .RData
-xmlcache/
-
+# xmlcache/

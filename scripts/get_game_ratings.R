@@ -23,23 +23,28 @@ GetGameRatings <- function(game.id1, test.file="", page=1,
                                use.cache, make.cache)
 
   # Move into dataframe (from doc)
-  item.attr <- unlist(xpathApply(collection.root, '//*/item', xmlAttrs)) # id, type
-  game.id <- as.integer(item.attr["id"]) # Should be a list of IDs, all alike
-  type <- (unlist(item.attr["type"]))
-
-  name.attr <- unlist(xpathApply(collection.root, '//*/name', xmlAttrs)) # type, value
-  game <- (unlist(name.attr["value"])) # the name of the game
-
-  description <- xpathSApply(collection.root, '//*/item/description', xmlValue)
-  published <- as.integer(xpathSApply(collection.root, '//*/item/yearpublished', xmlAttrs))
-
-  comments.attr <- unlist(xpathApply(collection.root, '//*/item/comments', xmlAttrs)) # page, totalitems
-  page <- as.integer(comments.attr["page"])
-  number.comments <- as.integer(comments.attr["totalitems"])
-
   comment.list <- xpathSApply(collection.root, '//*/item/comments/comment', xmlAttrs)
-  rating <- as.integer(comment.list["rating", ])
-  gamer <- comment.list["username", ]
+  if(length(comment.list) > 0) {
+    gamer <- comment.list["username", ]
+    name.attr <- unlist(xpathApply(collection.root, '//*/name', xmlAttrs)) # type, value
+    game <- (unlist(name.attr["value"])) # the name of the game
+    item.attr <- unlist(xpathApply(collection.root, '//*/item', xmlAttrs)) # id, type
+    game.id <- as.integer(item.attr["id"]) # Should be a list of IDs, all alike
+    rating <- as.integer(comment.list["rating", ])
+  } else {
+    gamer <- comment.list
+    game <- comment.list
+    game.id <- comment.list
+    rating <- comment.list
+  }
+
+#  type <- (unlist(item.attr["type"]))
+#  description <- xpathSApply(collection.root, '//*/item/description', xmlValue)
+#  published <- as.integer(xpathSApply(collection.root, '//*/item/yearpublished', xmlAttrs))
+#  comments.attr <- unlist(xpathApply(collection.root, '//*/item/comments', xmlAttrs)) # page, totalitems
+#  page <- as.integer(comments.attr["page"])
+#  number.comments <- as.integer(comments.attr["totalitems"])
+
 
   ratings.tbl <- tibble(gamer, game, game.id, rating)
   return(ratings.tbl)

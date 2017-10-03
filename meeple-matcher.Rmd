@@ -51,8 +51,9 @@ If a customer has a game with wishlist=1, then for that row the column
 
 ```{r echo=FALSE, message=FALSE, warning=TRUE}
 customer <- "mikec"
-collection.tbl <- GetGamerCollection(customer)
-head(collection.tbl)
+collection.customer <- GetGamerCollection(customer)
+head(collection.customer)
+write_delim(collection.customer, "tables/collection-customer.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
 ```
 
 
@@ -69,19 +70,22 @@ I've written a simple cache system so that subsequent reads come from local
 storage.
 
 ```{r echo=FALSE, message=FALSE, warning=TRUE}
-sample.tbl <- collection.tbl
-# sample.tbl <- sample_n(collection.tbl, 2)  # Uncomment to load fewer games
-head(sample.tbl)
-for(g in 1:dim(sample.tbl)[1]) {
-  game.id <- sample.tbl[[g, "game.id"]]
-  num.comments <- GetGameData(game.id)[[1, "comments"]]
+collection.sample <- collection.customer
+# sample.tbl <- sample_n(collection.customer, 2)  # Uncomment to load fewer games
+head(collection.sample)
+write_delim(collection.sample, "tables/collection-sample.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
+
+for(g in 1:dim(collection.sample)[1]) {
+  game.id <- collection.sample[[g, "game.id"]]
+  tGame.attrs <- GetGameData(game.id)
+  num.comments <- as.integer(tGame.attrs[tGame.attrs$key=="comments",]$value)
   num.pages <- as.integer(((num.comments - 1) / 100) + 1)
   print(sprintf("%s of %s, loading %s comments for %s, %s",
-                g, dim(sample.tbl)[1], num.comments, game.id, sample.tbl[[g, "game"]]))
+                g, dim(sample.tbl)[1], num.comments, game.id, collection.sample[[g, "game"]]))
   if(g == 1) {
-    attrs <- GetGameData(game.id)
+    attrs.tbl <- tGame.attrs
   } else {
-    attrs <- bind_rows(attrs, GetGameData(game.id))
+    attrs.tbl <- bind_rows(attrs.tbl, tGame.attrs)
   }
   for(p in 1:num.pages) {
     if(g==1 && p == 1) {
@@ -91,14 +95,12 @@ for(g in 1:dim(sample.tbl)[1]) {
     }
   }
 }
-head(attrs)
+head(attrs.tbl)
 head(ratings.tbl)
 
-write_delim(ratings.tbl, "tables/ratings.tbl", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-write_delim(collection.tbl, "tables/collection.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-write_delim(sample.tbl, "tables/sample.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-write_delim(games.tbl, "tables/games.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-
+write_delim(attrs.tbl, "tables/games-attrs.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
+write_delim(ratings.tbl, "tables/games-ratings.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
+#write_delim(games.tbl, "tables/games.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
 ```
 
 
@@ -117,14 +119,17 @@ fresh_data <- FALSE
 if(fresh_data) {
   # Select new gamers, probably download data for them
   selected_gamers <- sample(adjacent_gamers, 500) # 154K adjacent, use only 500
-  write_lines(selected_gamers, "tables/selected-gamers.tsv")
+  write_lines(selected_gamers, "tables/gamers-selected.tsv")
 } else {
   # Use previously selected gamers, probably read cached data for them
-  selected_gamers <- read_lines("tables/selected-gamers.tsv")
+  selected_gamers <- read_lines("tables/gamers-selected.tsv")
 }
 
+selected_gamers <- sort(selected_gamers)
+count <- 0
 for(gamer in selected_gamers) {
-  print(sprintf("loading: %s", gamer))
+  count <- count + 1
+  print(sprintf("loading: %s. %s", count, gamer))
   gamer_collection.tbl <- GetGamerCollection(gamer)
     if(gamer == selected_gamers[1]) {
       collections.tbl <- gamer_collection.tbl
@@ -132,53 +137,20 @@ for(gamer in selected_gamers) {
       collections.tbl <- bind_rows(collections.tbl, gamer_collection.tbl)
     }
 }
+write_delim(collections.tbl, "tables/collection-selected.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
+
+# load game attributtes
+for(g in 1:dim(sample.tbl)[1]) {
+  if(g ==1) {
+      games.attr <- GetGameData(sample.tbl[g])
+  } else {
+    
+  }
+}
 ```
 
 # Explore the data
-## Explore the customer
-* What's the distribution of his/her ratings?
-* Distribution of game attributes: published, categories, mechanics, #players, playtime
-* Correlation between ratings and attributes
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-rated.games <- collection.tbl[!is.na(collection.tbl$rating),]
-ggplot(rated.games, aes(rating)) +
-  geom_bar(fill="#6ec75c")
-
-# Do I like new games better?
-rated2 <- left_join(rated.games, published, by="game.id")
-published.plot <- ggplot(rated2, aes(x=yearpublished, y=rating)) +
-  ggtitle("Rating vs. Publish Date")
-published.plot + geom_point(alpha=0.5, color="#c46c5b")
-published.plot + geom_jitter(alpha=0.5, color="#c45b9f")
-
-# Which mechanics do I prefer? (# of games per, ratings of games per)
-mechanics <- attrs[attrs$key == "boardgamemechanic",]
-mechanics.unique <- unique(mechanics$value)
-
-# Which categories do I prefer?
-categories <- attrs[attrs$key == "boardgamecategory",]
-categories.unique <- unique(categories$value)
-```
-
-## Explore gamers
-* How many games do gamers rate?
-* What is distribution of their ratings?
-* Distribution of game attributes: published, categories, mechanics, #players, playtime
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-
-```
-
-## Explore games
-* How well-known are the games (how many ratings each)?
-* How well-regarded are the games (mean, sd, scatter of ratings)?
-* When were the games published?
-* Which game categories dominate?
-* Which game mechanics dominate?
-* Which game designers dominate?
-* Which game publishers dominate?
-
+This code was moved into meeple-explore.Rmd.
 
 # Rank gamers to make recommendations
 The general idea is:  

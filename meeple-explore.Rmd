@@ -1,0 +1,87 @@
+---
+title: "meeple-explore.Rmd"
+author: "mikec964"
+date: "9/28/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+```
+
+# Explore the game, customer, and adjacent gamer data
+
+## Reload the data
+| variable            | count     | Description
+| --------            |----------:| -----------
+| customer            | 1         | user
+| collection.customer | 160       | games in collection
+| games.ratings       | 1,349,063 | for games in collection
+| games.attrs         | 5954      | avg of 37 per game, 160 games
+| gamers.adjacent     | 158,705   | have games in common
+| gamers.selected     | 500       | subset of adjacent_gamers
+| collection.selected | 80,182    | games owned by selected_gamers
+
+```{r echo=FALSE, message=FALSE, warning=TRUE}
+customer <- "mikec"
+collection.customer <- read_delim("tables/collection-customer.tsv", delim = "\t", na = "NA", col_names = TRUE)
+games.ratings <- read_delim("tables/games-ratings.tsv", delim = "\t", na = "NA", col_names = TRUE)
+games.attrs <- read_delim("tables/games-attrs.tsv", delim = "\t", na = "NA", col_names = TRUE)
+collection.selected <- read_delim("tables/collection-selected.tsv", delim = "\t", na = "NA", col_names = TRUE)
+adjacent_gamers <- unique(games.ratings$gamer)
+gamers.selected <- read_lines("tables/gamers-selected.tsv")
+```
+
+## Explore the customer
+* What's the distribution of his/her ratings?
+* Distribution of game attributes: published, #players, playtime
+* Distribution of game tags: categories, mechanics
+* Correlation between ratings and attributes
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+rated.games <- collection.customer[!is.na(collection.customer$rating),]
+ggplot(rated.games, aes(rating)) +
+  geom_bar(fill="#6ec75c") +
+  ggtitle("Customer Ratings of Collection")
+
+# Do I like new games better?
+#published <- ce
+games.detail <- left_join(rated.games, published, by="game.id")
+published.plot <- ggplot(rated.games, aes(x=yearpublished, y=rating)) +
+  ggtitle("Cutomer's Rating vs. Publish Date")
+published.plot + geom_point(alpha=0.5, color="#c46c5b")
+published.plot + geom_jitter(alpha=0.5, color="#c45b9f")
+```
+
+# Which mechanics do I prefer? (# of games per, ratings of games per)
+
+mechanics <- attrs[attrs$key == "boardgamemechanic",]
+mechanics.unique <- unique(mechanics$value)
+
+# Which categories do I prefer?
+categories <- attrs[attrs$key == "boardgamecategory",]
+categories.unique <- unique(categories$value)
+```
+
+## Explore gamers
+* How many games do gamers rate?
+* What is distribution of their ratings?
+* Distribution of game attributes: published, categories, mechanics, #players, playtime
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+
+```
+
+## Explore games
+* How well-known are the games (how many ratings each)?
+* How well-regarded are the games (mean, sd, scatter of ratings)?
+* When were the games published?
+* Which game categories dominate?
+* Which game mechanics dominate?
+* Which game designers dominate?
+* Which game publishers dominate?
+

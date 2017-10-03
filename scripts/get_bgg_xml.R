@@ -72,11 +72,12 @@ GetBGGXML <- function(collection.path, test.file="",
     repeat {
       r <- GET(collection.path)
       message_for_status(r)
-      if(r$status_code == 202 || r$status_code == 429 || r$status_code == 502) {
+      if(r$status_code == 202 || # Accepted
+         r$status_code == 429 || # Too Many Requests
+         r$status_code == 502 || # Bad Gateway
+         r$status_code == 503    # Service Unavailable
+         ) {
         # We didn't get the data, wait before trying again
-        # 202 Accepted
-        # 429 Too Many Requests
-        # 502 Bad Gateway
         message(sprintf("Waiting %s seconds to try again.\n", wait.for.secs))
         Sys.sleep(wait.for.secs) # in seconds
         wait.for.secs <- wait.for.secs + 1
@@ -101,7 +102,10 @@ GetBGGXML <- function(collection.path, test.file="",
   # * xpathApply() and others can operate on it
   success <- try(collection.doc <- xmlParse(r))
   if(!("XMLInternalDocument" %in% class(success))) {
-    stop("Couldn't parse XML.")
+    warning(sprintf("Couldn't parse XML of %s", collection.path))
+    r <- c('<?xml version="1.0" encoding="utf-8"?><items></items>')
+    collection.doc <- xmlParse(r)
+#    stop("Couldn't parse XML.")
   }
   collection.root <- xmlRoot(collection.doc, skip=TRUE)
   if(make.cache && (!cache.exists || refresh.cache)) {

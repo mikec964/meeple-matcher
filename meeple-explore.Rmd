@@ -43,16 +43,17 @@ gamers.selected <- read_lines("tables/gamers-selected.tsv")
 * Correlation between ratings and attributes
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
-rated.games <- collection.customer[!is.na(collection.customer$rating),]
-ggplot(rated.games, aes(rating)) +
+# Only games that have been rated
+games.detail <- collection.customer[!is.na(collection.customer$rating),]
+
+ggplot(games.detail, aes(rating)) +
   geom_bar(fill="#6ec75c") +
   ggtitle("Customer Ratings of Collection")
 
 # Do I like new games better?
-# Select yearpublished attribute
-games.yearpublished <- games.attrs[games.attrs$key=="yearpublished",c("game.id", "value")]
-names(games.yearpublished)[-1] <- c("yearpublished")
-games.detail <- left_join(rated.games, games.yearpublished, by="game.id")
+g.yearpublished <- games.attrs[games.attrs$key=="yearpublished",c("game.id", "value")]
+names(g.yearpublished)[-1] <- c("yearpublished")
+games.detail <- left_join(games.detail, g.yearpublished, by="game.id")
 
 published.plot <- ggplot(games.detail, aes(x=yearpublished, y=rating)) +
   ggtitle("Cutomer's Rating vs. Publish Date")
@@ -62,23 +63,36 @@ published.plot + geom_jitter(alpha=0.5, color="#c45b9f")
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Spread attributes:
-#   description, minplayers, maxplayers, playingtime, minplaytime, maxplaytime, minage, comments
-games.playingtime <- games.attrs[games.attrs$key=="playingtime",c("game.id", "value")]
-names(games.playingtime)[-1] <- c("playingtime")
-games.playingtime$playingtime <- as.integer(games.playingtime$playingtime)
-games.detail <- left_join(games.detail, games.playingtime, by="game.id")
+#   description, minplayers, maxplayers, playingtime, minplaytime, maxplaytime, maxplayers, comments
+g.playingtime <- games.attrs[games.attrs$key=="playingtime",c("game.id", "value")]
+names(g.playingtime)[-1] <- c("playingtime")
+g.playingtime$playingtime <- as.integer(g.playingtime$playingtime)
+games.detail <- left_join(games.detail, g.playingtime, by="game.id")
+
+g.minage <- games.attrs[games.attrs$key=="minage",c("game.id", "value")]
+names(g.minage)[-1] <- c("minage")
+g.minage$minage <- as.integer(g.minage$minage)
+games.detail <- left_join(games.detail, g.minage, by="game.id")
+
+g.maxplayers <- games.attrs[games.attrs$key=="maxplayers",c("game.id", "value")]
+names(g.maxplayers)[-1] <- c("maxplayers")
+g.maxplayers$maxplayers <- as.integer(g.maxplayers$maxplayers)
+games.detail <- left_join(games.detail, g.maxplayers, by="game.id")
+
 ggplot(games.detail, aes(x=playingtime, y=rating)) +
   ggtitle("Cutomer's Rating vs. Playing Time") +
+  geom_jitter(alpha=0.5, color="#c45b9f")
+ggplot(games.detail, aes(x=maxplayers, y=rating)) +
+  ggtitle("Cutomer's Rating vs. Max Players") +
   geom_jitter(alpha=0.5, color="#c45b9f")
 ```
 
 # Which mechanics do I prefer? (# of games per, ratings of games per)
-
-mechanics <- attrs[attrs$key == "boardgamemechanic",]
-mechanics.unique <- unique(mechanics$value)
-
 # Which categories do I prefer?
-categories <- attrs[attrs$key == "boardgamecategory",]
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+mechanics <- games.attrs[games.attrs$key == "boardgamemechanic",]
+mechanics.unique <- unique(mechanics$value)
+categories <- games.attrs[games.attrs$key == "boardgamecategory",]
 categories.unique <- unique(categories$value)
 ```
 
@@ -88,6 +102,16 @@ categories.unique <- unique(categories$value)
 * Distribution of game attributes: published, categories, mechanics, #players, playtime
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
+# From selected gamers, find min, max, avg number of games rated
+# gamers.selected is list of gamers
+# collection.selected is all the games they've rated
+gamers.details <- collection.selected %>% group_by(gamer) %>% count %>% arrange(n)
+names(gamers.details)[-1] <- c("ratings")
+
+# group_by(gamer) %>% summarize(number of rows)
+
+# safe bet: matrix completion
+# fresh pick: graph network
 
 ```
 

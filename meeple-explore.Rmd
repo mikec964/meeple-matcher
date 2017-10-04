@@ -49,9 +49,12 @@ ggplot(rated.games, aes(rating)) +
   ggtitle("Customer Ratings of Collection")
 
 # Do I like new games better?
-#published <- ce
-games.detail <- left_join(rated.games, published, by="game.id")
-published.plot <- ggplot(rated.games, aes(x=yearpublished, y=rating)) +
+# Select yearpublished attribute
+games.yearpublished <- games.attrs[games.attrs$key=="yearpublished",c("game.id", "value")]
+names(games.yearpublished)[-1] <- c("yearpublished")
+
+games.detail <- left_join(rated.games, games.yearpublished, by="game.id")
+published.plot <- ggplot(games.detail, aes(x=yearpublished, y=rating)) +
   ggtitle("Cutomer's Rating vs. Publish Date")
 published.plot + geom_point(alpha=0.5, color="#c46c5b")
 published.plot + geom_jitter(alpha=0.5, color="#c45b9f")

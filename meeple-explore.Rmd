@@ -52,12 +52,24 @@ ggplot(rated.games, aes(rating)) +
 # Select yearpublished attribute
 games.yearpublished <- games.attrs[games.attrs$key=="yearpublished",c("game.id", "value")]
 names(games.yearpublished)[-1] <- c("yearpublished")
-
 games.detail <- left_join(rated.games, games.yearpublished, by="game.id")
+
 published.plot <- ggplot(games.detail, aes(x=yearpublished, y=rating)) +
   ggtitle("Cutomer's Rating vs. Publish Date")
 published.plot + geom_point(alpha=0.5, color="#c46c5b")
 published.plot + geom_jitter(alpha=0.5, color="#c45b9f")
+```
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+# Spread attributes:
+#   description, minplayers, maxplayers, playingtime, minplaytime, maxplaytime, minage, comments
+games.playingtime <- games.attrs[games.attrs$key=="playingtime",c("game.id", "value")]
+names(games.playingtime)[-1] <- c("playingtime")
+games.playingtime$playingtime <- as.integer(games.playingtime$playingtime)
+games.detail <- left_join(games.detail, games.playingtime, by="game.id")
+ggplot(games.detail, aes(x=playingtime, y=rating)) +
+  ggtitle("Cutomer's Rating vs. Playing Time") +
+  geom_jitter(alpha=0.5, color="#c45b9f")
 ```
 
 # Which mechanics do I prefer? (# of games per, ratings of games per)

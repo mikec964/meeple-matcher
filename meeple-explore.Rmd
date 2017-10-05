@@ -107,6 +107,13 @@ categories.unique <- unique(categories$value)
 # collection.selected is all the games they've rated
 gamers.details <- collection.selected %>% group_by(gamer) %>% count %>% arrange(n)
 names(gamers.details)[-1] <- c("ratings")
+print("Gamer's ratings")
+summary(gamers.details$ratings)
+gamers.most <- gamers.details[gamers.details$ratings >= 27,]
+gamers.most <- gamers.most[gamers.most$ratings <= 168,]
+ggplot(gamers.most, aes(ratings)) +
+  geom_density(fill="#6ec75c") +
+  ggtitle("Ratings per Gamer, 2nd-3rd quartile")
 
 # group_by(gamer) %>% summarize(number of rows)
 

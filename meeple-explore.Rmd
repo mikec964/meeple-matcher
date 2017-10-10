@@ -20,7 +20,7 @@ library(tidyr)
 | --------            |----------:| -----------
 | customer            | 1         | user
 | collection.customer | 160       | games in collection
-| games.ratings       | 1,349,063 | for games in collection
+| games.ratings       | 1,385,920 | for games in collection
 | games.attrs         | 5954      | avg of 37 per game, 160 games
 | gamers.adjacent     | 158,705   | have games in common
 | gamers.selected     | 500       | subset of adjacent_gamers
@@ -87,19 +87,48 @@ ggplot(games.detail, aes(x=maxplayers, y=rating)) +
   geom_jitter(alpha=0.5, color="#c45b9f")
 ```
 
+```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Which mechanics do I prefer? (# of games per, ratings of games per)
 # Which categories do I prefer?
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-mechanics <- games.attrs[games.attrs$key == "boardgamemechanic",]
-mechanics.unique <- unique(mechanics$value)
-categories <- games.attrs[games.attrs$key == "boardgamecategory",]
-categories.unique <- unique(categories$value)
+g.mechanics <- games.attrs[games.attrs$key == "boardgamemechanic",c("game.id", "value")]
+names(g.mechanics)[-1] <- c("mechanics")
+mechanics.unique <- sort(unique(g.mechanics$mechanics))
+g.categories <- games.attrs[games.attrs$key == "boardgamecategory",c("game.id", "value")]
+names(g.categories)[-1] <- c("categories")
+categories.unique <- sort(unique(g.categories$categories))
+
+# Per mechanic, get the # of games and mean rating
+mechanics.details <- data_frame(mechanic=mechanics.unique,
+                                count=0,
+                                mean=0.0)
+#mechanics.details$count <- as.integer(0)
+#mechanics.details$mean <- as.numeric(0)
+for(m in g.mechanics$mechanics) {
+  g <- g.mechanics[g.mechanics$mechanics == m,]
+  r <- games.ratings[g$game.id, "rating"]
+  mechanics.details[mechanics.details$mechanic == m,]$count <- count(g)
+  mechanics.details[mechanics.details$mechanic == m,]$mean <- mean(r$rating)
+}
+mechanics.details$count <- as.integer(mechanics.details$count)
+mechanics.details$mean <- as.numeric(mechanics.details$mean)
+
+categories.details <- data_frame(category=categories.unique,
+                                 count=0,
+                                 mean=0)
+for(c in g.categories$categories) {
+  g <- g.categories[g.categories$categories == c,]
+  r <- games.ratings[g$game.id, "rating"]
+  categories.details[categories.details$category == c,]$count <- count(g)
+  categories.details[categories.details$category == c,]$mean <- mean(r$rating)
+}
+categories.details$count <- as.integer(categories.details$count)
+categories.details$mean <- as.numeric(categories.details$mean)
 ```
 
 ## Explore gamers
 * How many games do gamers rate?
 * What is distribution of their ratings?
-* Distribution of game attributes: published, categories, mechanics, #players, playtime
+* Distribution of game attributes: published, playtime, maxplayers
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # From selected gamers, find min, max, avg number of games rated
@@ -115,6 +144,11 @@ ggplot(gamers.most, aes(ratings)) +
   geom_density(fill="#6ec75c") +
   ggtitle("Ratings per Gamer, 2nd-3rd quartile")
 
+# Ratings of all adjacent gamers
+ggplot(games.ratings, aes(rating)) +
+  geom_bar(fill="#6ec75c") +
+  ggtitle("All Ratings of Collection")
+  
 # group_by(gamer) %>% summarize(number of rows)
 
 # safe bet: matrix completion

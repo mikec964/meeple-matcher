@@ -149,7 +149,14 @@ ggplot(games.ratings, aes(rating)) +
   geom_bar(fill="#6ec75c") +
   ggtitle("All Ratings of Collection")
   
-# group_by(gamer) %>% summarize(number of rows)
+# How many games does each adjacent gamers have in common with the customer?
+#   In games.ratings, how many games does each gamer own?
+c <- games.ratings %>% 
+  group_by(gamer) %>% 
+  count()
+ggplot(c, aes(n)) +
+  geom_density(fill="#ffd063") + 
+  ggtitle("Games in common")
 
 # safe bet: matrix completion
 # fresh pick: graph network

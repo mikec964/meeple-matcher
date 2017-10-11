@@ -11,6 +11,8 @@ library(dplyr)
 library(ggplot2)
 library(readr)
 library(tidyr)
+
+colors.neon4 <- c("#a763ff", "#ffd063", "#bbff63", "#ff63bb")
 ```
 
 # Explore the game, customer, and adjacent gamer data
@@ -47,7 +49,7 @@ gamers.selected <- read_lines("tables/gamers-selected.tsv")
 games.detail <- collection.customer[!is.na(collection.customer$rating),]
 
 ggplot(games.detail, aes(rating)) +
-  geom_bar(fill="#6ec75c") +
+  geom_bar(fill=colors.neon4[4]) +
   ggtitle("Customer Ratings of Collection")
 
 # Do I like new games better?
@@ -141,12 +143,12 @@ summary(gamers.details$ratings)
 gamers.most <- gamers.details[gamers.details$ratings >= 27,]
 gamers.most <- gamers.most[gamers.most$ratings <= 168,]
 ggplot(gamers.most, aes(ratings)) +
-  geom_density(fill="#6ec75c") +
+  geom_density(fill=colors.neon4[2]) +
   ggtitle("Ratings per Gamer, 2nd-3rd quartile")
 
 # Ratings of all adjacent gamers
 ggplot(games.ratings, aes(rating)) +
-  geom_bar(fill="#6ec75c") +
+  geom_bar(fill=colors.neon4[3]) +
   ggtitle("All Ratings of Collection")
   
 # How many games does each adjacent gamers have in common with the customer?
@@ -155,7 +157,7 @@ c <- games.ratings %>%
   group_by(gamer) %>% 
   count()
 ggplot(c, aes(n)) +
-  geom_density(fill="#ffd063") + 
+  geom_density(fill=colors.neon4[1]) + 
   ggtitle("Games in common")
 
 # safe bet: matrix completion

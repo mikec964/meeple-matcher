@@ -1,7 +1,7 @@
 ---
 title: "meeple-explore.Rmd"
 author: "mikec964"
-date: "9/28/2017"
+date: "10/13/2017"
 output: html_document
 ---
 
@@ -18,24 +18,93 @@ colors.neon4 <- c("#a763ff", "#ffd063", "#bbff63", "#ff63bb")
 # Explore the game, customer, and adjacent gamer data
 
 ## Reload the data
+This data was downloaded from BGG using their XML interface, extracted into
+tables, and stored locally for faster recall.
+
 | variable            | count     | Description
 | --------            |----------:| -----------
 | customer            | 1         | user
 | collection.customer | 160       | games in collection
-| games.ratings       | 1,385,920 | for games in collection
-| games.attrs         | 5954      | avg of 37 per game, 160 games
+| games.ratings       | 1,385,920 | (tall) for games in collection
+| games.attrs         | 5954      | (tall) avg of 37 per game, 160 games
 | gamers.adjacent     | 158,705   | have games in common
 | gamers.selected     | 500       | subset of adjacent_gamers
-| collection.selected | 80,182    | games owned by selected_gamers
+| collection.selected | 80,342    | games owned by selected_gamers + customer
+
+'collection' columns are per gamer, like "owned".
+  gamer+game.id is unique, but game name might not be
+  The same game may have names in different languages or editions
+'games' columns are per game, like "description", categories and mechanics.
+
 
 ```{r echo=FALSE, message=FALSE, warning=TRUE}
 customer <- "mikec"
-collection.customer <- read_delim("tables/collection-customer.tsv", delim = "\t", na = "NA", col_names = TRUE)
-games.ratings <- read_delim("tables/games-ratings.tsv", delim = "\t", na = "NA", col_names = TRUE)
-games.attrs <- read_delim("tables/games-attrs.tsv", delim = "\t", na = "NA", col_names = TRUE)
-collection.selected <- read_delim("tables/collection-selected.tsv", delim = "\t", na = "NA", col_names = TRUE)
-adjacent_gamers <- unique(games.ratings$gamer)
-gamers.selected <- read_lines("tables/gamers-selected.tsv")
+collection.customer <- read_tsv("tables/collection-customer.tsv")
+games.ratings       <- read_tsv("tables/games-ratings.tsv")
+games.attrs         <- read_tsv("tables/games-attrs.tsv")
+collection.selected <- read_tsv("tables/collection-selected.tsv")
+collection.selected <- bind_rows(collection.customer, collection.selected)
+gamers.adjacent     <- unique(games.ratings$gamer)
+gamers.selected     <- read_lines("tables/gamers-selected.tsv")
+```
+
+### Build wide table of game attributes
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+# Only games that have been rated
+games.details <- collection.customer[!is.na(collection.customer$rating),]
+
+# These attributes have a single value; each attribute can be a column heading
+attrs.unique <- c("yearpublished", "minplayers", "maxplayers",
+                  "playingtime", "minplaytime", "maxplaytime", 
+                  "description", "comments")
+for(a in attrs.unique) {
+  v <- games.attrs[games.attrs$key == a, c("game.id", "value")]
+  names(v)[-1] <- a
+  games.details <- left_join(games.details, v, by="game.id")
+}
+
+# These attributes have N values; each value can be a column heading
+attrs.tags <- c("boardgamecategory", "boardgamemechanic")
+names(attrs.tags) <- c("category", "mechanic")
+for(a in attrs.tags) {
+  v <- games.attrs[games.attrs$key == a, c("game.id", "value")]
+  v$TF <- 1
+  v <- v %>% spread(value, TF, fill = 0)
+  names(v)[-1] <- paste0(names(a), ".", names(v)[-1])
+  games.details <- left_join(games.details, v, by="game.id")
+}
+
+# Get unique categories and mechanics (from customer's games)
+games.categories <- unique(
+  games.attrs[games.attrs$key == attrs.tags["category"],]$value)
+games.mechanics <- unique(
+  games.attrs[games.attrs$key == attrs.tags["mechanic"],]$value)
+
+# list of adjacent gamers, # of games they've rated
+gamers.details <- collection.selected %>% 
+  group_by(gamer) %>% 
+  count %>% 
+  arrange(n)
+names(gamers.details)[-1] <- c("ratings")
+print("Gamer's ratings")
+summary(gamers.details$ratings)
+
+# Get unique games
+game.grid <- data_frame(unique(collection.selected$game.id))
+names(game.grid)[1] <- "game.id"
+#   that have been rated
+#     A game can be in a gamer's collection as "wanted" or "owned" but not rated
+#   that aren't an expansion
+
+for(g in gamers.selected) {
+  # create column per gamer with their ratings for each game
+  #   16,685 rows = games owned by adjacent gamers
+  #   500 cols = selected adjacent gamers
+  # fill with -1 if not rated
+  # fill with "NA" if the game isn't on their list
+  
+}
+
 ```
 
 ## Explore the customer
@@ -45,62 +114,31 @@ gamers.selected <- read_lines("tables/gamers-selected.tsv")
 * Correlation between ratings and attributes
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
-# Only games that have been rated
-games.detail <- collection.customer[!is.na(collection.customer$rating),]
+ggplot(games.details, aes(rating)) +
+  ggtitle("Customer Ratings of Collection") +
+  geom_bar(fill=mycolors.neon4[1])
 
-ggplot(games.detail, aes(rating)) +
-  geom_bar(fill=colors.neon4[4]) +
-  ggtitle("Customer Ratings of Collection")
+ggplot(games.details, aes(x=yearpublished, y=rating)) +
+  ggtitle("Cutomer's Rating vs. Publish Date") +
+  geom_jitter(alpha=0.5, color=mycolors.neon4[1])
 
-# Do I like new games better?
-g.yearpublished <- games.attrs[games.attrs$key=="yearpublished",c("game.id", "value")]
-names(g.yearpublished)[-1] <- c("yearpublished")
-games.detail <- left_join(games.detail, g.yearpublished, by="game.id")
-
-published.plot <- ggplot(games.detail, aes(x=yearpublished, y=rating)) +
-  ggtitle("Cutomer's Rating vs. Publish Date")
-published.plot + geom_point(alpha=0.5, color="#c46c5b")
-published.plot + geom_jitter(alpha=0.5, color="#c45b9f")
-```
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-# Spread attributes:
-#   description, minplayers, maxplayers, playingtime, minplaytime, maxplaytime, maxplayers, comments
-g.playingtime <- games.attrs[games.attrs$key=="playingtime",c("game.id", "value")]
-names(g.playingtime)[-1] <- c("playingtime")
-g.playingtime$playingtime <- as.integer(g.playingtime$playingtime)
-games.detail <- left_join(games.detail, g.playingtime, by="game.id")
-
-g.minage <- games.attrs[games.attrs$key=="minage",c("game.id", "value")]
-names(g.minage)[-1] <- c("minage")
-g.minage$minage <- as.integer(g.minage$minage)
-games.detail <- left_join(games.detail, g.minage, by="game.id")
-
-g.maxplayers <- games.attrs[games.attrs$key=="maxplayers",c("game.id", "value")]
-names(g.maxplayers)[-1] <- c("maxplayers")
-g.maxplayers$maxplayers <- as.integer(g.maxplayers$maxplayers)
-games.detail <- left_join(games.detail, g.maxplayers, by="game.id")
-
-ggplot(games.detail, aes(x=playingtime, y=rating)) +
+ggplot(games.details, aes(x=playingtime, y=rating)) +
   ggtitle("Cutomer's Rating vs. Playing Time") +
-  geom_jitter(alpha=0.5, color="#c45b9f")
-ggplot(games.detail, aes(x=maxplayers, y=rating)) +
+  geom_jitter(alpha=0.5, color=mycolors.neon4[1])
+
+ggplot(games.details, aes(x=maxplayers, y=rating)) +
   ggtitle("Cutomer's Rating vs. Max Players") +
-  geom_jitter(alpha=0.5, color="#c45b9f")
+  geom_jitter(alpha=0.5, color=mycolors.neon4[1])
+
 ```
+
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Which mechanics do I prefer? (# of games per, ratings of games per)
 # Which categories do I prefer?
-g.mechanics <- games.attrs[games.attrs$key == "boardgamemechanic",c("game.id", "value")]
-names(g.mechanics)[-1] <- c("mechanics")
-mechanics.unique <- sort(unique(g.mechanics$mechanics))
-g.categories <- games.attrs[games.attrs$key == "boardgamecategory",c("game.id", "value")]
-names(g.categories)[-1] <- c("categories")
-categories.unique <- sort(unique(g.categories$categories))
 
 # Per mechanic, get the # of games and mean rating
-mechanics.details <- data_frame(mechanic=mechanics.unique,
+mechanics.details <- data_frame(mechanic=games.mechanics,
                                 count=0,
                                 mean=0.0)
 #mechanics.details$count <- as.integer(0)
@@ -136,10 +174,8 @@ categories.details$mean <- as.numeric(categories.details$mean)
 # From selected gamers, find min, max, avg number of games rated
 # gamers.selected is list of gamers
 # collection.selected is all the games they've rated
-gamers.details <- collection.selected %>% group_by(gamer) %>% count %>% arrange(n)
-names(gamers.details)[-1] <- c("ratings")
-print("Gamer's ratings")
-summary(gamers.details$ratings)
+
+# gamers.most = 2nd to 3rd quartile of # of games rated
 gamers.most <- gamers.details[gamers.details$ratings >= 27,]
 gamers.most <- gamers.most[gamers.most$ratings <= 168,]
 ggplot(gamers.most, aes(ratings)) +

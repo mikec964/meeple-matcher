@@ -1,0 +1,17 @@
+Package: meeplematcher
+Title: Recommends Board Games
+Version: 0.5
+Authors@R: person("Mike", "Combs", email="mike@combsnet.com",
+                  role=c("aut", "cre"))
+URL: https://github.com/mikec964/meeple-matcher
+Description: This downloads the user's game collection from BoardGameGeek.com
+    and the collections of (some) users who have games in common, and
+    then recommends games it thinks the user will like.
+LICENSE: file LICENSE
+Depends: R (>= 3.1.0)
+Imports:
+  dplyr,
+  ggplot2,
+  readr,
+  tidyr,
+  testthat

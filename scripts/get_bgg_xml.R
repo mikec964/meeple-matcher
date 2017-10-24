@@ -39,9 +39,9 @@ GetBGGXML <- function(collection.path, test.file="",
             str_locate(cache.file, "[?]"),
             str_locate(cache.file, "[?]")) <- "-"
 
-    if(dir.exists(paste0("../", kCacheName))) {
+    if(dir.exists(paste0("../../", kCacheName))) {
       # Adjust path if we're running from tests/ directory
-      cache.dir <- paste0("../", kCacheName)
+      cache.dir <- paste0("../../", kCacheName)
     } else {
       cache.dir <- kCacheName
     }

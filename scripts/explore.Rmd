@@ -13,7 +13,7 @@ library(readr)
 library(tidyr)
 
 colors.neon4 <- c("#a763ff", "#ffd063", "#bbff63", "#ff63bb")
-source("scripts/load_and_wrangle.R")
+source("scripts/wrangle.R")
 ```
 
 

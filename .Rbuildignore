@@ -1,0 +1,5 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^rsconnect          # Used to publish .Rmd file output
+^\.travis\.yml      # Used for continuous integration testing with travis
+^xmlcache           # Stores downloaded xml files as-is

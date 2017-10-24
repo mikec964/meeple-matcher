@@ -1,5 +1,9 @@
+# wrangle.R
 # Load and wrangle data into useful forms
 
+library(dplyr)
+library(readr)
+library(tidyr)
 
 # Reload the data ---------------
 #--------------------------------
@@ -100,6 +104,12 @@ most.ratings <- collection.selected %>%
   distinct(game.id, gamer, .keep_all = TRUE) %>%
   select(game.id, game, gamer, rating)
 most.grid <- spread(most.ratings, gamer, rating)
+
+# Add the customer ratings as a column to any grid:
+#customer.ratings <- collection.customer[c("game.id", "rating")]
+#names(customer.ratings)[2] <- customer
+#most2.grid <- left_join(most.grid, customer.ratings, by="game.id")
+
 
 # A game can be in a gamer's collection as "wanted" or "owned" but not rated
 # todo:

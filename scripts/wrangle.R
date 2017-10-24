@@ -88,22 +88,35 @@ collection.ratings <- distinct(collection.ratings, game.id, gamer, .keep_all = T
 collection.grid <- spread(collection.ratings, gamer, rating)
 
 # most.grid: rows = 160 games, cols = 252 of "most" adjacent gamers
-## gamers.most = 2nd to 3rd quartile of # of games rated
 ## NOTE: This is 224 rows instead of 160 because some games have dupe names.
 ## TODO: Remove dupe names.
-gamers.details <- collection.selected %>%
+
+# remove games with no ratings
+collection.rated <- collection.selected[
+  !is.na(collection.selected$rating),]
+
+# gamers.most = table of gamers and # of games rated
+# only gamers who have rated 2nd to 4th quartile # of games
+gamers.most <- collection.rated %>%
   group_by(gamer) %>%
   count %>%
   arrange(n)
-names(gamers.details)[-1] <- c("ratings")
-gamers.most <- gamers.details[(gamers.details$ratings >= 27) &
-                                (gamers.details$ratings <= 168),]
-most.ratings <- collection.selected %>%
+names(gamers.most)[-1] <- c("ratings")
+gamers.most <- gamers.details[(gamers.most$ratings >=
+                                 fivenum(gamers.most$ratings)[2]),]
+
+# most.grid = games rated by most gamers
+most.ratings <- collection.rated %>%
   semi_join(gamers.most, by = "gamer") %>%
   semi_join(collection.customer, by = "game.id") %>%
   distinct(game.id, gamer, .keep_all = TRUE) %>%
   select(game.id, game, gamer, rating)
 most.grid <- spread(most.ratings, gamer, rating)
+# remove games with dupe names
+# - goes from 268 to 147 games
+# - BUG: throws out ratings of games with alt names
+most.grid <- distinct(most.grid, game.id, .keep_all=TRUE)
+
 
 # Add the customer ratings as a column to any grid:
 #customer.ratings <- collection.customer[c("game.id", "rating")]

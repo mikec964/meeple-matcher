@@ -102,7 +102,7 @@ gamers.most <- collection.rated %>%
   count %>%
   arrange(n)
 names(gamers.most)[-1] <- c("ratings")
-gamers.most <- gamers.details[(gamers.most$ratings >=
+gamers.most <- gamers.most[(gamers.most$ratings >=
                                  fivenum(gamers.most$ratings)[2]),]
 
 # most.grid = games rated by most gamers

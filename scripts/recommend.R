@@ -40,6 +40,20 @@ getModel(r)$topN
 
 recom <- predict(r, most.rrm[customer.row], n=5)
 recom.list <- as(recom, "list")[[1]]
-recom.list
 sapply(recom.list, GetGameName)
+
+#-------------------
+# SVD recommender
+#-------------------
+# Singular Value Decomposition
+# http://www.cs.carleton.edu/cs_comps/0607/recommend/recommender/svd.html
+r <- Recommender(most.rrm[1:200], method="SVD")
+names(getModel(r))
+getModel(r)$topN
+
+recom <- predict(r, most.rrm[customer.row], n=5)
+recom.list <- as(recom, "list")[[1]]
+sapply(recom.list, GetGameName)
+
+
 

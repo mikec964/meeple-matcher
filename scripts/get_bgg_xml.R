@@ -1,4 +1,5 @@
 library(httr)
+library(futile.logger)
 library(stringr)
 library(XML)
 
@@ -19,26 +20,23 @@ GetBGGXML <- function(collection.path, test.file="",
   # collection.xml <- GetBGGXML(
   #   "https://boardgamegeek.com/xmlapi2/collection?username=mikec&subtype=boardgame&stats=1&brief=1")
   # ratings.xml <- GetBGGXML(
-  #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1&page=1")
+  #   "https://boardgamegeek.com/xmlapi2/thing?id=40&ratingcomments=1&page=1")
   # game.xml <- GetBGGXML(
-  #   "https://boardgamegeek.com/xmlapi2/thing?id=38453&ratingcomments=1")
+  #   "https://boardgamegeek.com/xmlapi2/thing?id=40&ratingcomments=1")
   #
   # Returns:
   #   The XML root document
 
   if(use.cache || make.cache) {
-    # create cache filename
-    # collection-username=mikec
-    # thing-id=38453/
-    #   thing-id=38453-1
-    #   thing-id=38453-2
-    tStart <- str_locate(collection.path, "xmlapi2/")[2] + 1
-    tEnd <- str_locate(collection.path, "&")[1] - 1
-    cache.file <- substring(collection.path, tStart, tEnd)
-    str_sub(cache.file,
-            str_locate(cache.file, "[?]"),
-            str_locate(cache.file, "[?]")) <- "-"
+    # create cache path and filename
+    # collection/
+    #   username=mikec.xml
+    # thing/
+    #   id=40/
+    #     id=40-1.xml
+    #     id=40-2.xml
 
+    # set cache.dir to "xmlcache/"
     if(dir.exists(paste0("../../", kCacheName))) {
       # Adjust path if we're running from tests/ directory
       cache.dir <- paste0("../../", kCacheName)
@@ -46,15 +44,32 @@ GetBGGXML <- function(collection.path, test.file="",
       cache.dir <- kCacheName
     }
 
-    # If page#, then append page# to cache-file name and create subdir
-    page.num <- str_extract(collection.path, "(?<=page=)\\d+")
-    if(!is.na(page.num)) {
-      cache.dir <- paste0(cache.dir, cache.file, "/")
+    # cache.type <- 'collection' or 'thing'
+    cache.type <- str_extract(collection.path, "(?<=xmlapi2[/]).*?(?=[?])")
+    cache.dir <- paste0(cache.dir, cache.type, "/")
+    if(!dir.exists(cache.dir)) { dir.create(cache.dir) }
+
+    # cache.file <- 'username=mike' or 'id=40-1'
+    if (cache.type=="collection") {
+      cache.file <- str_extract(collection.path, "(username=).*?(?=[&])")
+    } else {
+      cache.file <- str_extract(collection.path, "(id=)[0-9]+")
+      # make subdir id=40
+      cache.dir <- paste0(cache.dir, cache.file, '/')
       if(!dir.exists(cache.dir)) { dir.create(cache.dir) }
-      cache.file <- paste0(cache.file, "-", page.num)
+      # add page# to filename
+      page.num <- str_extract(collection.path, "(?<=page=)[0-9]+")
+      if(!is.na(page.num)) {
+        cache.file <- paste0(cache.file, "-1")
+      } else {
+        cache.file <- paste0(cache.file, "-", page.num)
+      }
     }
 
     cache.file <- paste0(cache.dir, cache.file, ".xml")
+    flog.info("XML cache.dir is %s", cache.dir)
+    flog.info("XML cache.file is %s", cache.file)
+
     if(file.exists(cache.file)) {
       cache.exists <- TRUE
       test.file <- cache.file

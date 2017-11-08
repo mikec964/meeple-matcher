@@ -23,11 +23,8 @@ GetBGGXML <- function(collection.path,
   # Returns:
   #   The XML root document
 
-  if(use.cache || make.cache) {
-    cache.file <- .ParseXMLCachePath(collection.path)
-  }
-
-  if(use.cache && file.exists(cache.file)) {
+  cache.file <- .ParseXMLCachePath(collection.path)
+  if(use.cache & file.exists(cache.file)) {
     # read from cache file
     message(sprintf("Reading: %s", cache.file))
     r <- cache.file
@@ -53,7 +50,7 @@ GetBGGXML <- function(collection.path,
   collection.root <- xmlRoot(collection.doc, skip=TRUE)
 
   # cache locally
-  if(parsed && make.cache && refresh.cache) {
+  if(parsed & make.cache & refresh.cache) {
     message(sprintf("Caching: %s", cache.file))
     saveXML(collection.doc, file=cache.file)
   }
@@ -121,9 +118,9 @@ GetBGGXML <- function(collection.path,
   repeat {
     r <- GET(collection.path)
     message_for_status(r)
-    if(r$status_code == 202 || # Accepted
-       r$status_code == 429 || # Too Many Requests
-       r$status_code == 502 || # Bad Gateway
+    if(r$status_code == 202 | # Accepted
+       r$status_code == 429 | # Too Many Requests
+       r$status_code == 502 | # Bad Gateway
        r$status_code == 503    # Service Unavailable
     ) {
       if(r$status_code != 202) {

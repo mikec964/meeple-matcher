@@ -23,6 +23,8 @@ GetBGGXML <- function(collection.path,
   # Returns:
   #   The XML root document
 
+  flog.debug("GetBGGXML: %s, %s, %s, %s",
+             collection.path, use.cache, make.cache, refresh.cache)
   cache.file <- .ParseXMLCachePath(collection.path)
   if(use.cache & file.exists(cache.file)) {
     # read from cache file

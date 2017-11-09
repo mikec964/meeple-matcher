@@ -1,8 +1,7 @@
 library(dplyr)
 library(XML)
 
-GetGameData <- function(game.id, test.file="",
-                           use.cache=TRUE, make.cache=TRUE) {
+GetGameAttrs <- function(game.id, use.cache=TRUE, make.cache=TRUE) {
   # Get game attributes (but not ratings) as tidy data
   #
   # space_alert.df <- GetGameData(38453)

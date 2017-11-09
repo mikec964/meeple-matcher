@@ -1,10 +1,12 @@
 library(dplyr)
+library(futile.logger)
 library(XML)
 
-GetGameAttrs <- function(game.id, use.cache=TRUE, make.cache=TRUE) {
-  # Get game attributes (but not ratings) as tidy data
-  #
-  # space_alert.df <- GetGameData(38453)
+
+GetGameAttrs <- function(game.ids, use.cache=TRUE, make.cache=TRUE) {
+  # Get game attributes (but not ratings) as tall table
+
+  # space_alert.df <- GetGameAttrs(38453)
   #
   # | game.id | key               | value         |
   # |---      |---                |---            |
@@ -16,13 +18,28 @@ GetGameAttrs <- function(game.id, use.cache=TRUE, make.cache=TRUE) {
   # id, name, description, yearpublished, minplayers, maxplayers
   # playingtime, minplaytime, maxplaytime, minage
 
+  flog.debug("GetGameAttrs(%s, %s, %s)", game.id, use.cache, make.cache)
+  for(g in 1:length(game.ids)) {
+    game.id <- game.ids[g]
+    tGame.attrs <- .Get1GameAttrs(game.id, use.cache, make.cache)
+    if(g == 1) {
+      big.game.attrs <- tGame.attrs
+    } else {
+      big.game.attrs <- bind_rows(big.game.attrs, tGame.attrs)
+    }
+  }
+  return(big.game.attrs)
+}
+
+
+#--------------------------------------
+.Get1GameAttrs <- function(game.id, use.cache=TRUE, make.cache=TRUE) {
   root.path <- "https://boardgamegeek.com/xmlapi2/"
   game.params <- paste0("thing?",
                               "id=", game.id,
                               "&ratingcomments=1")
   game.path <- paste0(root.path, game.params)
-  game.root <- GetBGGXML(game.path, test.file,
-                               use.cache, make.cache)
+  game.root <- GetBGGXML(game.path, use.cache, make.cache)
 
   # Move into dataframe (from doc)
   item.attr <- unlist(xpathApply(game.root, '//*/item', xmlAttrs)) # id, type

@@ -93,7 +93,7 @@ GetBGGXML <- function(collection.path,
     if(!dir.exists(cache.dir)) { dir.create(cache.dir) }
     # add page# to filename
     page.num <- str_extract(collection.path, "(?<=page=)[0-9]+")
-    if(!is.na(page.num)) {
+    if(is.na(page.num)) {
       cache.file <- paste0(cache.file, "-1")
     } else {
       cache.file <- paste0(cache.file, "-", page.num)

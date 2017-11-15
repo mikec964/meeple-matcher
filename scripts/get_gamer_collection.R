@@ -74,7 +74,5 @@ GetGamerCollection <- function(gamer.names, use.cache=TRUE, make.cache=TRUE) {
       collections.tbl <- bind_rows(collections.tbl, bigT.tbl)
     }
   }
-  write_tsv(collections.tbl, "tables/collection-selected.tsv",
-            na = "NA", append = FALSE, col_names = TRUE)
   return(collections.tbl)
 }

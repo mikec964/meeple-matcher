@@ -1,7 +1,7 @@
 ---
 title: "meep-matcher.Rmd"
 author: "mikec964"
-date: "9/21/2017"
+date: "10/15/2017"
 output: html_document
 ---
 
@@ -10,11 +10,14 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(readr)
+library(stringr)
 library(tidyr)
-file.sources = list.files(c("scripts"),
+file.sources <- list.files(c("scripts"),
                           pattern="*.R$", full.names=TRUE,
                           ignore.case=TRUE)
 sapply(file.sources, source)
+
+kFreshData <- FALSE
 ```
 
 # Overview
@@ -51,9 +54,14 @@ If a customer has a game with wishlist=1, then for that row the column
 
 ```{r echo=FALSE, message=FALSE, warning=TRUE}
 customer <- "mikec"
-collection.customer <- GetGamerCollection(customer)
+if(kFreshData) {
+  collection.customer <- GetGamerCollection(customer)
+  write_tsv(collection.customer, "tables/collection-customer.tsv", 
+            na = "NA", append = FALSE, col_names = TRUE)
+} else {
+  collection.customer <- read_tsv("tables/collection-customer.tsv")
+}
 head(collection.customer)
-write_delim(collection.customer, "tables/collection-customer.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
 ```
 
 
@@ -70,37 +78,30 @@ I've written a simple cache system so that subsequent reads come from local
 storage.
 
 ```{r echo=FALSE, message=FALSE, warning=TRUE}
-collection.sample <- collection.customer
-# sample.tbl <- sample_n(collection.customer, 2)  # Uncomment to load fewer games
-head(collection.sample)
-write_delim(collection.sample, "tables/collection-sample.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-
-for(g in 1:dim(collection.sample)[1]) {
-  game.id <- collection.sample[[g, "game.id"]]
-  tGame.attrs <- GetGameData(game.id)
-  num.comments <- as.integer(tGame.attrs[tGame.attrs$key=="comments",]$value)
-  num.pages <- as.integer(((num.comments - 1) / 100) + 1)
-  print(sprintf("%s of %s, loading %s comments for %s, %s",
-                g, dim(sample.tbl)[1], num.comments, game.id, collection.sample[[g, "game"]]))
-  if(g == 1) {
-    attrs.tbl <- tGame.attrs
-  } else {
-    attrs.tbl <- bind_rows(attrs.tbl, tGame.attrs)
-  }
-  for(p in 1:num.pages) {
-    if(g==1 && p == 1) {
-      ratings.tbl <- GetGameRatings(game.id, page=p)
-    } else {
-      ratings.tbl <- bind_rows(ratings.tbl, GetGameRatings(game.id, page=p))
-    }
-  }
+# Select a subset of the collection
+if(kFreshData) {
+  collection.sample <- collection.customer
+  # collection.sample <- sample_n(collection.customer, 2)  # load subset
+  write_tsv(collection.sample, "tables/collection-sample.tsv", 
+            na = "NA", append = FALSE, col_names = TRUE)
+} else {
+  collection.sample <- read_tsv("tables/collection-sample.tsv")
 }
-head(attrs.tbl)
-head(ratings.tbl)
+```
 
-write_delim(attrs.tbl, "tables/games-attrs.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-write_delim(ratings.tbl, "tables/games-ratings.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-#write_delim(games.tbl, "tables/games.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
+```{r echo=FALSE, message=FALSE, warning=TRUE}
+# Load the attributes and ratings for selected games
+if(kFreshData) {
+  GetGameData(sort(collection.sample$game.id)) # defines games.attrs, games.ratings
+  write_tsv(games.attrs, "tables/games-attrs.tsv",
+            na = "NA", append = FALSE, col_names = TRUE)
+  
+  write_tsv(games.ratings, "tables/games-ratings.tsv",
+            na = "NA", append = FALSE, col_names = TRUE)
+} else {
+  games.attrs <- read_tsv("tables/games-attrs.tsv")
+  games.ratings <- read_tsv("tables/games-ratings.tsv")
+}
 ```
 
 
@@ -114,37 +115,30 @@ We should prioritize gamers by number of games in common with me.
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Get unique gamers
 # For now, we ignore every good idea above and just select 500 at random
-adjacent_gamers <- unique(ratings.tbl$gamer)
-fresh_data <- FALSE
-if(fresh_data) {
+gamers.adjacent <- unique(games.ratings$gamer)
+if(kFreshData) {
   # Select new gamers, probably download data for them
-  selected_gamers <- sample(adjacent_gamers, 500) # 154K adjacent, use only 500
-  write_lines(selected_gamers, "tables/gamers-selected.tsv")
+  gamers.selected <- sort(sample(gamers.adjacent, 1000)) # 154K adjacent, use only 500
+  write_lines(gamers.selected, "tables/gamers-selected.tsv")
+  collection.selected <- GetGamerCollection(gamers.selected)
+  write_tsv(collection.selected, "tables/games-selected.tsv",
+            na = "NA", append = FALSE, col_names = TRUE)
 } else {
-  # Use previously selected gamers, probably read cached data for them
-  selected_gamers <- read_lines("tables/gamers-selected.tsv")
-}
-
-selected_gamers <- sort(selected_gamers)
-count <- 0
-for(gamer in selected_gamers) {
-  count <- count + 1
-  print(sprintf("loading: %s. %s", count, gamer))
-  gamer_collection.tbl <- GetGamerCollection(gamer)
-    if(gamer == selected_gamers[1]) {
-      collections.tbl <- gamer_collection.tbl
-    } else {
-      collections.tbl <- bind_rows(collections.tbl, gamer_collection.tbl)
-    }
-}
-write_delim(collections.tbl, "tables/collection-selected.tsv", delim = "\t", na = "NA", append = FALSE, col_names = TRUE)
-
-# load game attributtes
-for(g in 1:dim(sample.tbl)[1]) {
-  if(g ==1) {
-      games.attr <- GetGameData(sample.tbl[g])
+  kDownloadCollections <- FALSE
+  if(kDownloadCollections) {
+    # Select from cached gamers
+    gamers.cached <- str_extract(
+      list.files(c("xmlcache/collection")),
+      "(?<=username=)(.*?)(?=[.]xml$)")
+    gamers.selected <- sort(sample(gamers.cached, 1000))
+    write_lines(gamers.selected, "tables/gamers-selected.tsv")
+    collection.selected <- GetGamerCollection(gamers.selected)
+    write_tsv(collection.selected, "tables/games-selected.tsv",
+              na = "NA", append = FALSE, col_names = TRUE)
   } else {
-    
+    # Fastest, just load previously cached collection data
+    gamers.selected <- read_lines("tables/gamers-selected.tsv")
+    collection.selected <- read_tsv("tables/games-selected.tsv")
   }
 }
 ```
@@ -161,9 +155,4 @@ The general idea is:
   * If we agree on category, weigh that more
   * If we agree on mechanics, weigh that more
   * If they haven't rated many games, weigh them less
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-
-```
-
 

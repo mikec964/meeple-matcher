@@ -21,30 +21,35 @@ kFreshData <- FALSE
 ```
 
 # Overview
+This loads data from BGG's XML API and creates the following variables,
+and TSV files for faster reloading in the future.
+
+| variable            | count     | Description
+| --------            |----------:| -----------
+| customer            | 1         | user
+| collection.customer | 160       | games in collection
+| collection.sample   | 160       | customer games we'll use
+| gamers.adjacent     | 158,705   | have games in common
+| gamers.selected     | 500       | subset of adjacent_gamers
+| collection.selected | 80,342    | games-selected.tsv, games owned by selected_gamers + customer
+| games.attrs         | 5954      | (tall) avg of 37 per game, 160 games
+| games.ratings       | 1,385,920 | (tall) for games in collection
+
+
 Here's the plan, so far:
 
 1. **Load the customer's collection.**  
 Load the collection of games (and ratings) of the user. All users are gamers,
 but the person we're building the recommendation for is the customer.
-We'll build a Collections table with a row per game.
 
 2. **Per game, load the ratings.**  
-For each game in the customer's collection, get the gamers that also rated
-it. Row per gamer/rating.
+For each game in the customer's collection, get the gamers (adjacent gamers)
+that also rated it.
 
 3. **Load collections of gamers with games in common**  
-This can be a big list, so first apply a basic filter or take a sample.
-
-For selected gamers, load their collections. Games
+For selected adjacent gamers, load their collections. Games
 in their collections that are unknown to the customer are possible
 recommendations.
-
-4. **Explore the data**
-Look at the customer's preferences, game attributes, and preferences of
-adjacent gamers in order to suggest recommendation algorithms and weights.
-
-5. **Rank gamers to make recommendations**
-
 
 # Load the customer's collection
 This is probably in the range of 10 to 200 games. 
@@ -112,7 +117,7 @@ them we'll download their collections.
 
 We should prioritize gamers by number of games in common with me.
 
-```{r echo=FALSE, message=TRUE, warning=TRUE}
+```{r echo=FALSE, message=FALSE, warning=TRUE}
 # Get unique gamers
 # For now, we ignore every good idea above and just select 500 at random
 gamers.adjacent <- unique(games.ratings$gamer)
@@ -127,9 +132,8 @@ if(kFreshData) {
   kDownloadCollections <- FALSE
   if(kDownloadCollections) {
     # Select from cached gamers
-    gamers.cached <- str_extract(
-      list.files(c("xmlcache/collection")),
-      "(?<=username=)(.*?)(?=[.]xml$)")
+    gamers.cached <- str_extract(list.files(c("xmlcache/collection")),
+                                 "(?<=username=)(.*?)(?=[.]xml$)")
     gamers.selected <- sort(sample(gamers.cached, 1000))
     write_lines(gamers.selected, "tables/gamers-selected.tsv")
     collection.selected <- GetGamerCollection(gamers.selected)
@@ -142,17 +146,4 @@ if(kFreshData) {
   }
 }
 ```
-
-# Explore the data
-This code was moved into meeple-explore.Rmd.
-
-# Rank gamers to make recommendations
-The general idea is:  
-  * For the games we have rated, find gamers who have rated them similarly  
-  * The more games they agree with us on, the better
-  * If we agree on a game that everyone agrees on, weigh that less
-  * If we strongly agree, weigh that more
-  * If we agree on category, weigh that more
-  * If we agree on mechanics, weigh that more
-  * If they haven't rated many games, weigh them less
 

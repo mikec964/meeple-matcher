@@ -31,7 +31,7 @@ and TSV files for faster reloading in the future.
 | collection.sample   | 160       | customer games we'll use
 | gamers.adjacent     | 158,705   | have games in common
 | gamers.selected     | 500       | subset of adjacent_gamers
-| collection.selected | 80,342    | games-selected.tsv, games owned by selected_gamers + customer
+| collection.selected | 80,342    | games owned by selected_gamers + customer
 | games.attrs         | 5954      | (tall) avg of 37 per game, 160 games
 | games.ratings       | 1,385,920 | (tall) for games in collection
 
@@ -126,7 +126,7 @@ if(kFreshData) {
   gamers.selected <- sort(sample(gamers.adjacent, 1000)) # 154K adjacent, use only 500
   write_lines(gamers.selected, "tables/gamers-selected.tsv")
   collection.selected <- GetGamerCollection(gamers.selected)
-  write_tsv(collection.selected, "tables/games-selected.tsv",
+  write_tsv(collection.selected, "tables/collection-selected.tsv",
             na = "NA", append = FALSE, col_names = TRUE)
 } else {
   kDownloadCollections <- FALSE
@@ -137,12 +137,12 @@ if(kFreshData) {
     gamers.selected <- sort(sample(gamers.cached, 1000))
     write_lines(gamers.selected, "tables/gamers-selected.tsv")
     collection.selected <- GetGamerCollection(gamers.selected)
-    write_tsv(collection.selected, "tables/games-selected.tsv",
+    write_tsv(collection.selected, "tables/collection-selected.tsv",
               na = "NA", append = FALSE, col_names = TRUE)
   } else {
     # Fastest, just load previously cached collection data
     gamers.selected <- read_lines("tables/gamers-selected.tsv")
-    collection.selected <- read_tsv("tables/games-selected.tsv")
+    collection.selected <- read_tsv("tables/collection-selected.tsv")
   }
 }
 ```

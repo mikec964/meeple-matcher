@@ -4,6 +4,8 @@ library(recommenderlab)
 source("scripts/wrangle.R")
 source("scripts/get_game_name.R")
 
+ReloadData()  # From wrangle.R
+
 # most.grid
 # - 389 cols = gamers that have at least 2nd quartile games in common with customer
 # - 147 rows = list of games known to the gamers (and rated)
@@ -55,5 +57,9 @@ recom <- predict(r, most.rrm[customer.row], n=5)
 recom.list <- as(recom, "list")[[1]]
 sapply(recom.list, GetGameName)
 
-
+#-------------------
+# Compare POPULAR to SVD
+#-------------------
+e <- evaluationScheme(most.rrm[1:200], method="split", train=0.9,
+                      given=2, goodRating=5)
 

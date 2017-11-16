@@ -5,48 +5,36 @@ library(dplyr)
 library(readr)
 library(tidyr)
 
-# Reload the data ---------------
-#--------------------------------
-# This data was downloaded from BGG using their XML interface, extracted into
-# tables, and stored locally for faster recall.
-#
-# | variable            | count     | Description
-# | --------            |----------:| -----------
-# | customer            | 1         | user
-# | collection.customer | 160       | games in collection
-# | games.ratings       | 1,385,920 | (tall) for games in collection
-# | games.attrs         | 5954      | (tall) avg of 37 per game, 160 games
-# | gamers.adjacent     | 158,705   | have games in common
-# | gamers.selected     | 500       | subset of adjacent_gamers
-# | collection.selected | 80,342    | games owned by selected_gamers + customer
-#
-# 'collection' columns are per gamer, like "owned".
-# gamer+game.id is unique, but game name might not be
-# The same game may have names in different languages or editions
-# 'games' columns are per game, like "description", categories and mechanics.
+ReloadData <- function() {
+  # Load data extracted via meeple_matcher.Rmd
 
-# customer <- "mikec"
-# collection.customer <- read_tsv("tables/collection-customer.tsv")
-# games.ratings       <- read_tsv("tables/games-ratings.tsv")
-# games.ratings       <- games.ratings[, c("game.id", "game", "gamer", "rating")]
-# games.attrs         <- read_tsv("tables/games-attrs.tsv")
-# collection.selected <- read_tsv("tables/collection-selected.tsv")
-# collection.selected <- bind_rows(collection.customer, collection.selected)
-# gamers.adjacent     <- unique(games.ratings$gamer)
-# gamers.selected     <- read_lines("tables/gamers-selected.tsv")
-# games.categories <- unique(
-#   games.attrs[games.attrs$key == attrs.tags["category"],]$value)
-# games.mechanics <- unique(
-#   games.attrs[games.attrs$key == attrs.tags["mechanic"],]$value)
+  # 'collection' columns are per gamer, like "owned".
+  # gamer+game.id is unique, but game name might not be
+  # The same game may have names in different languages or editions
+  # 'games' columns are per game, like "description", categories and mechanics.
 
+  customer <<- "mikec"
+  collection.customer <<- read_tsv("tables/collection-customer.tsv")
+  collection.sample   <<- read_tsv("tables/collection-sample.tsv")
+  games.attrs         <<- read_tsv("tables/games-attrs.tsv")
+  games.ratings       <<- read_tsv("tables/games-ratings.tsv")
+  collection.selected <<- read_tsv("tables/collection-selected.tsv")
+  gamers.selected     <<- read_lines("tables/gamers-selected.tsv")
+
+  gamers.adjacent     <<- unique(games.ratings$gamer)
+  games.categories    <<- unique(
+    games.attrs[games.attrs$key == attrs.tags["category"],]$value)
+  games.mechanics     <<- unique(
+    games.attrs[games.attrs$key == attrs.tags["mechanic"],]$value)
+}
 
 
 #--------------------------------------
 #--------------------------------------
 WidenAttrs <- function(games.attrs) {
   # Build wide table (games.details) of game attributes
-  #---------------------------------
-  # Per row: Games that have been rated
+
+  # Per row: Games
   # Cols for attributes like yearpublished and maxplayers
   # Cols for multiple value tags like boardgamecategory and boardgamemechanic
 

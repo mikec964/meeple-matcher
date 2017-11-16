@@ -87,18 +87,19 @@ CollectionGrid <- function(collection.selected) {
   collection.grid <- spread(collection.ratings, gamer, rating)
 }
 
-MostGrid <- function(collection.selected) {
+MostGrid <- function(collection, minRatings=5) {
   # most.grid: rows = 160 games, cols = 252 of "most" adjacent gamers
   ## NOTE: This is 224 rows instead of 160 because some games have dupe names.
   ## TODO: Remove dupe names.
 
+  games.unique <- unique(collection$game.id)
+
   # remove games with no ratings
-  #collection.rated <- collection.selected[
-  #  !is.na(collection.selected$rating),]
-  collection.rated <- collection.selected
+  #collection.rated <- collection[!is.na(collection$rating),]
+  collection.rated <- collection
 
   # gamers.most = table of gamers and # of games rated
-  # only gamers who have rated 2nd to 4th quartile # of games
+  # keep only gamers who have rated at least 5 (minRatings) games
   gamers.most <- collection.rated %>%
     group_by(gamer) %>%
     count %>%
@@ -106,19 +107,20 @@ MostGrid <- function(collection.selected) {
   names(gamers.most)[-1] <- c("ratings")
   #gamers.most <- gamers.most[(gamers.most$ratings >=
   #                                 fivenum(gamers.most$ratings)[2]),]
-  gamers.most <- gamers.most[(gamers.most$ratings >= 5),]
+  gamers.most <- gamers.most[(gamers.most$ratings >= minRatings),]
 
   # most.grid = games rated by most gamers
   most.ratings <- collection.rated %>%
     semi_join(gamers.most, by = "gamer") %>%
-    semi_join(collection.customer, by = "game.id") %>%
+#    semi_join(collection.customer, by = "game.id") %>%
     distinct(game.id, gamer, .keep_all = TRUE) %>%
     select(game.id, game, gamer, rating)
   most.grid <- spread(most.ratings, gamer, rating)
   # remove games with dupe names
   # - goes from 268 to 147 games
   # - BUG: throws out ratings of games with alt names
-  most.grid <- distinct(most.grid, game.id, .keep_all=TRUE)
+  clean.grid <- distinct(most.grid, game.id, .keep_all=TRUE)
+  return(clean.grid)
 }
 
 

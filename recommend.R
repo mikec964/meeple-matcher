@@ -5,10 +5,18 @@ source("scripts/wrangle.R")
 source("scripts/get_game_name.R")
 
 ReloadData()  # From wrangle.R
+collection.details <- WidenAttrs(
+  collection.customer[!is.na(collection.customer$rating),],
+  games.attrs)
+collection.details <- WidenTags(collection.details, games.attrs)
+
 
 # most.grid
-# - 389 cols = gamers that have at least 2nd quartile games in common with customer
-# - 147 rows = list of games known to the gamers (and rated)
+# - rows = unique games known to the gamers (27,882)
+# - cols = gamers that have rated at least 5 games (988)
+games.unique <- unique(collection.selected$game.id)
+most.grid <- MostGrid(collection.selected, 10)
+
 # Create most.matrix, row per user, col per game
 game.ids <- most.grid$game.id
 tmp <- most.grid

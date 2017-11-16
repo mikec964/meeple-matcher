@@ -31,31 +31,30 @@ ReloadData <- function() {
 
 #--------------------------------------
 #--------------------------------------
-WidenAttrs <- function(games.attrs) {
-  # Build wide table (games.details) of game attributes
+WidenAttrs <- function(collection, games.attrs) {
+  # Build wide table (collection) of game attributes
 
   # Per row: Games
   # Cols for attributes like yearpublished and maxplayers
   # Cols for multiple value tags like boardgamecategory and boardgamemechanic
 
   # These attributes have a single value; each attribute can be a column heading
-  games.details <- collection.customer[!is.na(collection.customer$rating),]
   attrs.unique <- c("yearpublished", "minplayers", "maxplayers",
                     "playingtime", "minplaytime", "maxplaytime",
                     "description", "comments")
   for(a in attrs.unique) {
     v <- games.attrs[games.attrs$key == a, c("game.id", "value")]
     names(v)[-1] <- a
-    games.details <- left_join(games.details, v, by="game.id")
+    collection <- left_join(collection, v, by="game.id")
   }
-  return(games.details)
+  return(collection)
 }
 
 
 
 #--------------------------------------
 #--------------------------------------
-WidenTags <- function(games.attrs) {
+WidenTags <- function(collection, games.attrs) {
   # These attributes have N values; each value can be a column heading
   attrs.tags <- c("boardgamecategory", "boardgamemechanic")
   names(attrs.tags) <- c("category", "mechanic")
@@ -64,9 +63,9 @@ WidenTags <- function(games.attrs) {
     v$TF <- 1
     v <- v %>% spread(value, TF, fill = 0)
     names(v)[-1] <- paste0(names(a), ".", names(v)[-1])
-    games.details <- left_join(games.details, v, by="game.id")
+    collection <- left_join(collection, v, by="game.id")
   }
-  return(games.details)
+  return(collection)
 }
 
 

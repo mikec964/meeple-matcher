@@ -19,13 +19,13 @@ ReloadData <- function() {
   games.attrs         <<- read_tsv("tables/games-attrs.tsv")
   games.ratings       <<- read_tsv("tables/games-ratings.tsv")
   collection.selected <<- read_tsv("tables/collection-selected.tsv")
-  gamers.selected     <<- read_lines("tables/gamers-selected.tsv")
+  gamers.selected     <<- read_tsv("tables/gamers-selected.tsv")
 
   gamers.adjacent     <<- unique(games.ratings$gamer)
   games.categories    <<- unique(
-    games.attrs[games.attrs$key == attrs.tags["category"],]$value)
+    games.attrs[games.attrs$key == "boardgamecategory",]$value)
   games.mechanics     <<- unique(
-    games.attrs[games.attrs$key == attrs.tags["mechanic"],]$value)
+    games.attrs[games.attrs$key == "boardgamemechanic",]$value)
 }
 
 

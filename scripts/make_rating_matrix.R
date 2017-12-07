@@ -19,14 +19,14 @@ MakeRatingMatrix <- function(collection, min.game.rates = 1,
   rownames(ratings.matrix) <- ratings.wide$gamer
   colnames(ratings.matrix) <- colnames(ratings.wide[,-1])
 
-  # remove gamers (obs/cases/rows) with fewer than <minRates> ratings
-  rate.rows <- !is.na(ratings.matrix)[,]
-  c.rate.rows <- rowSums(rate.rows)
-  ratings.matrix2 <- ratings.matrix[c.rate.rows >= min.gamer.rates, ]
   # remove games (vars/cols) with fewer than <minRates> games rated
-  rate.cols <- !is.na(ratings.matrix2)[,]
+  rate.cols <- !is.na(ratings.matrix)[,]
   c.rate.cols <- colSums(rate.cols)
-  ratings.matrix3 <- ratings.matrix2[, c.rate.cols >= min.game.rates]
+  ratings.matrix2 <- ratings.matrix[, c.rate.cols >= min.game.rates]
+  # remove gamers (obs/cases/rows) with fewer than <minRates> ratings
+  rate.rows <- !is.na(ratings.matrix2)[,]
+  c.rate.rows <- rowSums(rate.rows)
+  ratings.matrix3 <- ratings.matrix2[c.rate.rows >= min.gamer.rates, ]
 
   return(ratings.matrix3)
 }

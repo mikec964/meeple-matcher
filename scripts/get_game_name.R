@@ -1,8 +1,8 @@
-GetGameName <- function(game.table, gid) {
+GetGameName <- function(collection, gid) {
   # Returns game name given game.id
   # To-do: Select primary English name
-  games <- game.table[game.table$game.id == gid, ]
-  return(games$game[1])
+  games <- collection[collection$game.id == gid, ]
+  return(games[1,"game"])
 }
 
 GetGameAttr <- function(game.attrs, attr) {

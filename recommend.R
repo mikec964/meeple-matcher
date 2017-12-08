@@ -79,22 +79,37 @@ sapply(r.ibcf.l, function(x) GetGameName(collection.selected,x))
 #-------------------
 # Compare UBCF to SVD
 #-------------------
-e <- evaluationScheme(sample.rrm, method="split", train=0.9,
+es1 <- evaluationScheme(sample.rrm, method="split", train=0.9,
                       given=5, goodRating=5)
-e
-r1 <- Recommender(getData(e, "train"), "UBCF")
-r1
-r2 <- Recommender(getData(e, "train"), "SVD")
-r2
-p1 <- predict(r1, getData(e, "known"), type="ratings")
-p1
-p2 <- predict(r2, getData(e, "known"), type="ratings")
-p2
+es1
+r11 <- Recommender(getData(e, "train"), "UBCF")
+r11
+r12 <- Recommender(getData(e, "train"), "SVD")
+r12
+p11 <- predict(r1, getData(e, "known"), type="ratings")
+p11
+p12 <- predict(r2, getData(e, "known"), type="ratings")
+p12
 error <- rbind(
   UBCF=calcPredictionAccuracy(p1, getData(e, "unknown")),
   SVD=calcPredictionAccuracy(p2, getData(e, "unknown")))
 error
 
 #-------------------
-# Compare TopN UBCF to SVD
+# Compare TopN POPULAR to SVD
 #-------------------
+es2 <- evaluationScheme(most.rrm[1:900], method="cross",
+                       k=4, given=3, goodRating=5)
+es2
+r21 <- evaluate(es2, method="POPULAR", type="topNList",
+                n=c(1,3,5,10,15,20))
+getConfusionMatrix(r21)[[1]]
+avg(r21)
+plot(r21, annotate=TRUE)
+plot(r21, "prec/rec", annotate=TRUE)
+
+r22 <- evaluate(es2, method="SVD", type="topNList",
+                n=c(1,3,5,10,15,20))
+getConfusionMatrix(r22)[[1]]
+plot(r22, annotate=TRUE)
+plot(r22, "prec/rec", annotate=TRUE)

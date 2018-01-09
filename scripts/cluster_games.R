@@ -1,37 +1,55 @@
 library(dplyr)
+library(readr)
+library(tibble)
 library(tidyr)
 
 # test setup
-library(readr)
 rm(list = ls())
 customer <- "mikec"
-collection.selected <- read_tsv("tables/collection-selected.tsv")
-collection <- collection.selected
-min.rates <- 5
+collection <- read_tsv("tables/collection-selected.tsv")
+min_rates <- 5
 
 # make ratings DF, row per gamer, col per game
-mean.rating <- round(mean(ratings.tall$rating), 2)
-ratings.tall <- collection %>%
-  select(game.id, gamer, rating) %>%            # keep only key attributes
+ratings_tall <- collection %>%
+  select(game.id, game, gamer, rating) %>%      # keep only key attributes
   distinct(gamer, game.id, .keep_all=TRUE) %>%  # remove dupe ratings
   filter(!is.na(rating)) %>%                    # remove non-rated games
   arrange(game.id, gamer)                       # sort by game
-ratings.wide <- spread(ratings.tall, game.id, rating, fill=mean.rating)
-# ratings.wide[is.na(ratings.wide)] <- mean.rating
+
+ratings_wide <- spread(ratings_tall[, -2], game.id, rating, fill=NA)
+ratings_wide2 <- column_to_rownames(remove_rownames(ratings_wide), "gamer")
+
+# Warning: some games have multiple names in different languages
+unique_names <- ratings_tall %>%
+  select(game.id, game) %>%
+  distinct(game.id, .keep_all=TRUE) %>%
+  arrange(game.id)
+games <- unique_names$game               # value is game name
+names(games) <- unique_names$game.id     # key is game.id
+
+# colnames(ratings_wide2) is the id of the game
+# games[gid] is the name of the game
+colnames(ratings_wide2) <- games[colnames(ratings_wide2)]
+
+# get mean per player, normalize his scores?
+
+# get mean per game, fill into NAs per game
+ratings <- apply(ratings_wide2, 2, function(x) {  # per col
+              tm <- mean(x, na.rm=T)              # calc mean
+              rt <- ifelse(is.na(x), tm, x)       # replace na with tm
+              return(rt)
+})
 
 # make game ratings matrix (row per game), then games distance table
-grm <- as.matrix(ratings.wide[, -1])
-# rownames(grm) <- ratings.wide[, 1]
-# grm <- grm[, -1]
-grm <- t(grm)
+grm <- t(as.matrix(ratings))
 
-grms <- grm[1:9, 1:9]
-grms.dist <- dist(grms, method="euclidean", diag=T, upper=F)
-grms.dist
-grs.dendro <- hclust(grms.dist)
-plot(grs.dendro)
+grms <- grm[1:100, 1:100]
+grms_dist <- dist(grms, method="euclidean", diag=T, upper=F)
+grms_dist
+grs_dendro <- hclust(grms_dist)
+plot(grs_dendro)
 
-grm.dist <- dist(grm, method="euclidean", diag=T, upper=F) # 90sec calc time!
-grm.dist
-grm.dendro <- hclust(grm.dist)
-plot(grm.dendro)
+grm_dist <- dist(grm, method="euclidean", diag=T, upper=F) # 90sec calc time!
+grm_dist
+grm_dendro <- hclust(grm_dist)
+plot(grm_dendro)

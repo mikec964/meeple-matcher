@@ -43,13 +43,17 @@ ratings <- apply(ratings_wide2, 2, function(x) {  # per col
 # make game ratings matrix (row per game), then games distance table
 grm <- t(as.matrix(ratings))
 
-grms <- grm[1:100, 1:100]
-grms_dist <- dist(grms, method="euclidean", diag=T, upper=F)
-grms_dist
+grms <- grm[1:5000, 1:1000]
+grms_dist <- dist(grms, method="euclidean", diag=T, upper=F) # 1 min
+# grms_dist
 grs_dendro <- hclust(grms_dist)
 plot(grs_dendro)
 
-grm_dist <- dist(grm, method="euclidean", diag=T, upper=F) # 90sec calc time!
-grm_dist
-grm_dendro <- hclust(grm_dist)
-plot(grm_dendro)
+gc <- cutree(grs_dendro, k=10)
+plot(gc)
+
+
+# grm_dist <- dist(grm, method="euclidean", diag=T, upper=F) # 7 min calc time!
+# grm_dist
+# grm_dendro <- hclust(grm_dist)   # 1 min calc time
+# plot(grm_dendro)

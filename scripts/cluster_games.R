@@ -35,25 +35,19 @@ colnames(ratings_wide2) <- games[colnames(ratings_wide2)]
 
 # get mean per game, fill into NAs per game
 ratings <- apply(ratings_wide2, 2, function(x) {  # per col
-              tm <- mean(x, na.rm=T)              # calc mean
-              rt <- ifelse(is.na(x), tm, x)       # replace na with tm
+              mpc <- mean(x, na.rm=T)             # calc mean
+              rt <- ifelse(is.na(x), mpc, x)      # replace na with mean
               return(rt)
 })
+ratings <- t(ratings)  # row per game, col per gamer
 
-# make game ratings matrix (row per game), then games distance table
-grm <- t(as.matrix(ratings))
+# work with a subset for speed. There are 15,984 games, 1000 gamers in data.
+grms <- ratings[1:5000, 1:1000]  # 5K games, 1K gamers.
+# dist calc time: 5000x1000=60sec
+grms_dist <- dist(grms, method="euclidean", diag=T, upper=F)  # long calc time
 
-grms <- grm[1:5000, 1:1000]
-grms_dist <- dist(grms, method="euclidean", diag=T, upper=F) # 1 min
-# grms_dist
 grs_dendro <- hclust(grms_dist)
-plot(grs_dendro)
+c1 <- cutree(grs_dendro, k=50) # cut into 50 groups
+names(c1)[c1==8]
+c2 <- cut(as.dendrogram(grs_dendro), h=100)
 
-gc <- cutree(grs_dendro, k=10)
-plot(gc)
-
-
-# grm_dist <- dist(grm, method="euclidean", diag=T, upper=F) # 7 min calc time!
-# grm_dist
-# grm_dendro <- hclust(grm_dist)   # 1 min calc time
-# plot(grm_dendro)

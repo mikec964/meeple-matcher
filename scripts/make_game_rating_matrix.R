@@ -34,19 +34,24 @@ makeGameRatingMatrix <- function(collection, mrpGame = 1, mrpGamer = 5) {
 
   # colnames(ratings_wide2) is the id of the game
   # games[gid] is the name of the game
+  # add game names as colnames
   colnames(ratings_wide2) <- games[colnames(ratings_wide2)]
 
   stopifnot(
     length(colnames(ratings_wide2)) == length(unique(colnames(ratings_wide2))),
     length(rownames(ratings_wide2)) == length(unique(rownames(ratings_wide2))))
 
-  # get mean per player, normalize his scores?
+  ratings <- t(ratings)  # row per game, col per gamer
 
   # get mean per game, fill into NAs per game
-  ratings <- apply(ratings_wide2, 2, function(x) {  # per col
+  ratings <- apply(ratings_wide2, 1, function(x) {  # per row/game
     mpc <- mean(x, na.rm=T)             # calc mean
     rt <- ifelse(is.na(x), mpc, x)      # replace na with mean
     return(rt)
   })
-  ratings <- t(ratings)  # row per game, col per gamer
+
+  # TO-DO
+  # get mean per player, normalize his scores
+  # remove players with fewer than mrpGamer ratings
+  # remove games with fewer than mrpGame ratings
 }

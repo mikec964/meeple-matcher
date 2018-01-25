@@ -1,5 +1,6 @@
 library(dplyr)
 library(readr)
+library(stringr)
 library(tibble)
 library(tidyr)
 
@@ -13,12 +14,22 @@ collection <- read_tsv("tables/collection-selected.tsv")
 min_rates <- 5
 ratings <- makeGameRatingMatrix(collection)
 
-## Why aren't game names unique?
-gnames <- rownames(ratings) # 15984 elements
-gnames <- unique(gnames)    # 15770 elements
-
 # work with a subset for speed. There are 15,984 games, 1000 gamers in data.
 grms <- ratings[1:5000, 1:1000]  # 5K games, 1K gamers.
+gNames <- rownames(grms)
+gIds <- sapply(gNames, function(x) {
+  str_extract(x, "(\\d+)$")
+})
+
+#--------------------
+# Load attributes for games
+# Can take hours, run this later
+# source("scripts/get_game_attrs.R")
+# source("scripts/get_bgg_xml.R")
+# gAttrs <- GetGameAttrs(gIds)
+# write_tsv(gAttrs, "tables/games-attrs.tsv",
+#           na = "NA", append = FALSE, col_names = TRUE)
+
 # dist calc time: 5000x1000=60sec
 grms_dist <- dist(grms, method="euclidean", diag=T, upper=F)  # long calc time
 
@@ -26,11 +37,6 @@ grs_dendro <- hclust(grms_dist)
 c1 <- cutree(grs_dendro, k=500) # cut into k groups
 c1df <- data.frame("clust"=c1, "game"=names(c1))
 
-
-# duplicate game names with different clusters??!!
-c1dfu <- c1df %>%
-  distinct(game)
-# names(c1)[c1==8]
 
 # Make gameInfo with game attributes and cluster number
 # We only have attrs for games in my collection (160 of 5000 games)

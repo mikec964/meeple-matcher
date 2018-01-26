@@ -35,8 +35,11 @@ grms_dist <- dist(grms, method="euclidean", diag=T, upper=F)  # long calc time
 
 grs_dendro <- hclust(grms_dist)
 c1 <- cutree(grs_dendro, k=500) # cut into k groups
-c1df <- data.frame("clust"=c1, "game"=names(c1))
+c1df <- data.frame("game"=names(c1),
+                   "game.id"=str_extract(names(c1), "(\\d+)$"),
+                   "clust"=c1)
 
+# tapply(c1df$game, c1df$clust, length)
 
 # Make gameInfo with game attributes and cluster number
 # We only have attrs for games in my collection (160 of 5000 games)
@@ -52,7 +55,5 @@ gameInfo <- WidenTags(gameInfo, gameAttrs)
 gameInfo <- as.data.frame(names(c1))
 myGameIds <- unique(gameAttrs$game.id)
 myCollection <- collection[collection$game.id %in% myGameIds, ]
-
-
 
 # c2 <- cut(as.dendrogram(grs_dendro), h=100)

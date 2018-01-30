@@ -1,4 +1,5 @@
 library(dplyr)
+library(dynamicTreeCut)
 library(readr)
 library(stringr)
 library(tibble)
@@ -16,10 +17,6 @@ ratings <- makeGameRatingMatrix(collection)
 
 # work with a subset for speed. There are 15,984 games, 1000 gamers in data.
 grms <- ratings[1:5000, 1:1000]  # 5K games, 1K gamers.
-gNames <- rownames(grms)
-gIds <- sapply(gNames, function(x) {
-  str_extract(x, "(\\d+)$")
-})
 
 #--------------------
 # Load attributes for games
@@ -35,11 +32,17 @@ grms_dist <- dist(grms, method="euclidean", diag=T, upper=F)  # long calc time
 
 grs_dendro <- hclust(grms_dist)
 c1 <- cutree(grs_dendro, k=500) # cut into k groups
+dend <- grs_dendro %>% as.dendrogram
+clusters <- cutreeDynamic(grs_dendro, method="tree", minClusterSize=2)
 c1df <- data.frame("game"=names(c1),
                    "game.id"=str_extract(names(c1), "(\\d+)$"),
-                   "clust"=c1)
+                   "clust"=clusters)
 
-# tapply(c1df$game, c1df$clust, length)
+# Examine a cluster
+length(unique(clusters))
+head(clusters)
+tapply(c1df$game, c1df$clust, length)
+c1df$game[c1df$clust == 162]
 
 # Make gameInfo with game attributes and cluster number
 # We only have attrs for games in my collection (160 of 5000 games)

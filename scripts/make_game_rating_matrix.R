@@ -23,21 +23,28 @@ makeGameRatingMatrix <- function(collection, mrpGame = 1, mrpGamer = 5) {
     length(colnames(ratings_wide)) == length(unique(colnames(ratings_wide))),
     length(rownames(ratings_wide)) == length(unique(rownames(ratings_wide))))
 
+  # Build games as game name lookup vector
   # Warning: Some games have multiple names (different languages, publishers),
   # and game names are not unique
-  unique_names <- ratings_tall %>%
+  unique_games <- ratings_tall %>%
     select(game.id, game) %>%
     distinct(game.id, .keep_all=TRUE) %>%
     arrange(game.id)
-  games <- lapply(unique_names$game.id, function(x) {
-    paste0(unique_names[x, "game"], ".", x)
-    })                                     # value is <game name>.<game.id>
-  names(games) <- unique_names$game.id     # key is game.id
+  games <- paste0(unique_games$game, ".", unique_games$game.id) # value/name
+  names(games) <- unique_games$game.id                          # key/id
+  stopifnot(
+    games["7"] == "Cathedral.7"
+  )
+  # This code is WRONG (see games[6]) and SLOW
+  # games <- lapply(unique_names$game.id, function(x) {
+  #   paste0(unique_names[x, "game"], ".", x)
+  #   })                                     # value is <game name>.<game.id>
+  # names(games) <- unique_names$game.id     # key is game.id
 
   # colnames(ratings_wide) is the id of the game
   # games[gid] is the name of the game
   # add game names as colnames
-  colnames(ratings_wide) <- games[colnames(ratings_wide)]
+  colnames(ratings_wide) <- games[names(games)]
 
   stopifnot( # are all columns and rows unique?
     length(colnames(ratings_wide)) == length(unique(colnames(ratings_wide))),

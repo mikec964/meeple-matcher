@@ -12,9 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 # Objective
 This project will recommend board games to avid board game hobbyists based on their collection and interests as indicated in their online profile.
 
-This is my capstone project for the (Foundations of Data Science)[https://www.springboard.com/workshops/data-science/] workshop at [Springboard](https://www.springboard.com).
+This is my capstone project for the [Foundations of Data Science](https://www.springboard.com/workshops/data-science/) workshop at [Springboard](https://www.springboard.com).
 
-![North Sea Raiders game](images/game_north_sea_raiders.jpg)
+![North Sea Explorers game](images/game_north_sea_raiders.jpg)
+
 This benefits:
 
 * Dedicated gamers (dedicated enough to build an online profile) who want to find new games to play
@@ -27,6 +28,7 @@ For this iteration, I'll focus on features for gamers.
 The board games we'll consider are modern strategy games like [Pandemic](https://boardgamegeek.com/boardgame/30549/pandemic), [Dominion](https://boardgamegeek.com/boardgame/36218/dominion), [7 Wonders](https://boardgamegeek.com/boardgame/68448/7-wonders), and [King of Tokyo](https://boardgamegeek.com/boardgame/70323/king-tokyo).
 
 ![A meeple from Carcassonne](images/game_carcassonne.jpg)
+
 Many modern strategy [games use meeples](https://boardgamegeek.com/geeklist/51968/games-featuring-meeple). Meeples are the wooden tokens that look a little like people.
 
 
@@ -42,7 +44,9 @@ BGG has over 91,000 games and 1.5 million registered users. From within that poo
 * From gamers who have rated the game, their ratings and other games they've rated
 * Other data about the games like the theme, the type, and play mechanics
 
-I'll collect this via BGG's [XML API](https://boardgamegeek.com/wiki/page/BGG_XML_API2).
+I'll collect this via BGG's [XML API](https://boardgamegeek.com/wiki/page/BGG_XML_API2). The [Terms of Use](https://boardgamegeek.com/wiki/page/XML_API_Terms_of_Use#) includes:
+
+  >a worldwide, non-exclusive, royalty-free license to reproduce and display the data available through the BGG XML API, including User Submissions, solely for strictly non-commercial purposes 
 
 
 ## Solution

@@ -25,3 +25,14 @@ ggplot(data=ratings, mapping=aes(x=rating, y=prop, fill=customer)) +
   geom_col(position="dodge")
 # note: ratings are screwed left
 
+########## Compare collection sizes
+qty <- games_ratings %>%
+  group_by(gamer) %>%
+  count()
+quantile(qty$n, probs=seq(0, 1, length=11))
+# 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100%
+# 1    1    2    2    4    5    7   10   14   21  153
+ggplot(data=qty, mapping=aes(n)) +
+  geom_histogram(binwidth=nrow(qty)/10)
+# question: How to get 10 bars?
+

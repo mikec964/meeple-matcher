@@ -11,13 +11,9 @@ source("scripts/restore_data.R")
 games_ratings$customer <- games_ratings$gamer == customer
 ratings <- games_ratings %>%
   group_by(rating, customer) %>%
-  summarize(n = sum(rating))
-# change counts to proportion BUT calc proportion of customer,
-# or proportion of neighbor (not-customer)
-n_cust <- sum(ratings[ratings$customer == TRUE, ])
-n_other <- sum(ratings[ratings$customer == FALSE, ])
-ratings$prop <- ratings$customer * ratings$n/n_cust +
-  (!ratings$customer) * ratings$n/n_other
+  summarize(n = sum(rating)) %>%
+  group_by(customer) %>%
+  mutate(prop = n/sum(n)) # proportion of customer or non-customer votes
 
 ggplot(data=ratings, mapping=aes(x=rating, y=prop, fill=customer)) +
   ggtitle("Customer Ratings of Collection") +

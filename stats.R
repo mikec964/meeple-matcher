@@ -1,6 +1,5 @@
 library(dplyr)
 library(ggplot2)
-library(readr)
 library(tidyr)
 
 source("scripts/restore_data.R")
@@ -26,11 +25,9 @@ ggplot(data=ratings, mapping=aes(x=rating, y=prop, fill=customer)) +
 ########## Compare collection sizes
 # put gamers into quintiles, plot collection size for each
 # (158k gamers with 1,385k ratings)
-qty <- games_ratings %>%
-  # quintiles
-  group_by(gamer) %>%
-  count() %>%
-  ungroup(gamer) %>%
+qty <- collection_selected %>%
+  # quintiles by #games per gamer
+  count(gamer) %>%
   arrange(n) %>%
   mutate(g = rep(1:5, each=ceiling(length(gamer)/5))) %>%
   # mean collection size per quintile
@@ -38,10 +35,7 @@ qty <- games_ratings %>%
   summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
             games_sd = as.integer(sd(n, na.rm=TRUE)),
             games_max = max(n, na.rm=TRUE))
-
 ggplot(data=qty, mapping=aes(x=g, y=games_mu)) +
   ggtitle("Collection Sizes per Neighbor Quintiles") +
   geom_col()
-
-
 

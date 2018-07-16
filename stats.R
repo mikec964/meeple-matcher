@@ -6,6 +6,7 @@ library(tidyr)
 source("scripts/restore_data.R")
 # games_ratings is tall and includes customer and neighbors
 
+
 ########## Compare customer ratings to most ratings
 # tidy the data by rating and customer/neighbor
 games_ratings$customer <- games_ratings$gamer == customer
@@ -21,14 +22,26 @@ ggplot(data=ratings, mapping=aes(x=rating, y=prop, fill=customer)) +
   geom_col(position="dodge")
 # note: ratings are screwed left
 
+
 ########## Compare collection sizes
+# put gamers into quintiles, plot collection size for each
+# (158k gamers with 1,385k ratings)
 qty <- games_ratings %>%
+  # quintiles
   group_by(gamer) %>%
-  count()
-quantile(qty$n, probs=seq(0, 1, length=11))
-# 0%  10%  20%  30%  40%  50%  60%  70%  80%  90% 100%
-# 1    1    2    2    4    5    7   10   14   21  153
-ggplot(data=qty, mapping=aes(n)) +
-  geom_histogram(binwidth=nrow(qty)/10)
-# question: How to get 10 bars?
+  count() %>%
+  ungroup(gamer) %>%
+  arrange(n) %>%
+  mutate(g = rep(1:5, each=ceiling(length(gamer)/5))) %>%
+  # mean collection size per quintile
+  group_by(g) %>%
+  summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
+            games_sd = as.integer(sd(n, na.rm=TRUE)),
+            games_max = max(n, na.rm=TRUE))
+
+ggplot(data=qty, mapping=aes(x=g, y=games_mu)) +
+  ggtitle("Collection Sizes per Neighbor Quintiles") +
+  geom_col()
+
+
 

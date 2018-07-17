@@ -38,3 +38,30 @@ q5_qty_tbl <- collection_selected %>%
 ggplot(data=q5_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
   ggtitle("Collection Sizes per Neighbor Quintiles") +
   geom_col()
+
+
+# Ratings per mechanic ----------------------------------------------------
+# calc mean rating per game
+game_rating_tbl <- collection_selected %>%
+  group_by(game.id) %>%
+  summarize(rating_mean = mean(rating, na.rm=TRUE),
+            rating_sd = sd(rating, na.rm=TRUE)) %>%
+  filter(!is.nan(rating_mean)) %>%
+  filter(!is.na(rating_sd))
+# result: 27k games (16K rated, 8K with >1 rating)
+
+# game_attrs is tall, make it tidy with observation per game
+game_mech_tbl <- games_attrs %>%
+  # keep only the mechanics data
+  group_by(game.id) %>%
+  filter(key == "boardgamemechanic") %>%
+  select(-one_of("key")) %>%
+  # make a col per mechanic
+  mutate(TF = 1) %>%
+  spread(value, TF, fill=0)
+# result: 158?! games, 43 variables
+
+# add ratings cols but keep only games with ratings
+game_mech_tbl <- game_rating_tbl %>%
+  inner_join(game_mech_tbl, by="game.id")
+# result: 150 games

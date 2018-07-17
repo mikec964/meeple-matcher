@@ -3,10 +3,16 @@ library(ggplot2)
 library(tidyr)
 
 source("scripts/restore_data.R")
-# games_ratings is tall and includes customer and neighbors
+game_ids_tbl <- collection_selected %>%
+  select(game, game.id) %>%
+  distinct(game.id, .keep_all=TRUE)
+gids <- game_ids_tbl$game.id
+names(gids) <- game_ids_tbl$game
+#names(gids[5])
 
 
 # Compare customer ratings to most ratings --------------------------------
+# games_ratings is tall and includes customer and neighbors
 # tidy the data by rating and customer/neighbor
 games_ratings$customer <- games_ratings$gamer == customer
 rating_prop_tbl <- games_ratings %>%

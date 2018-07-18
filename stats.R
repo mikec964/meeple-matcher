@@ -57,17 +57,30 @@ game_rating_tbl <- collection_selected %>%
 # result: 27k games (16K rated, 8K with >1 rating)
 
 # game_attrs is tall, make it tidy with observation per game
-game_mech_tbl <- games_attrs %>%
+game_mech_tall <- games_attrs %>%
   # keep only the mechanics data
   group_by(game.id) %>%
   filter(key == "boardgamemechanic") %>%
   select(-one_of("key")) %>%
+  rename(mech=value)
+
+game_mech_tbl <- game_mech_tall %>%
   # make a col per mechanic
   mutate(TF = 1) %>%
-  spread(value, TF, fill=0)
+  spread(mech, TF, fill=0, sep="-")
 # result: 158?! games, 43 variables
 
 # add ratings cols but keep only games with ratings
 game_mech_tbl <- game_rating_tbl %>%
   inner_join(game_mech_tbl, by="game.id")
 # result: 150 games
+
+# make each mechanic an observation with vars: n games
+mech_count_tbl <- game_mech_tall %>%
+  group_by(mech) %>%
+  summarize(n=n()) %>%
+  arrange(n)
+
+ggplot(mech_count_tbl, aes(mech, n)) +
+  geom_col() +
+  coord_flip()

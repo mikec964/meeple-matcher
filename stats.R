@@ -91,6 +91,17 @@ ggplot(mech_count_tbl, aes(reorder(mech, n), n)) +
   coord_flip()
 
 
+# Calc ratings per mech ---------------------------------------------------
+game_mech_tall$rating <- sapply(game_mech_tall$game.id, function(x){
+  game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"]
+})
+
+mech_rating_tbl <- game_mech_tall %>%
+  # cols will be games, values will be game ratings
+  rename(gid=game.id) %>%
+  mutate(TF=rating) %>%
+  spread(gid, TF, fill=0, sep="-")
+
 
 # Ratings per category ----------------------------------------------------
 # game_attrs is tall, make it tidy with observation per game

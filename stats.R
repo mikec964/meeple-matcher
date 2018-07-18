@@ -22,7 +22,8 @@ rating_prop_tbl <- games_ratings %>%
   mutate(prop = n/sum(n)) # proportion of customer or non-customer votes
 
 ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
-  ggtitle("Customer Ratings of Collection") +
+  labs(title="Game Ratings", y="proportion") +
+  scale_fill_discrete(name="Gamer", labels=c("All others", "Customer")) +
   scale_x_continuous(breaks=seq(0,10)) +
   geom_col(position="dodge")
 # note: ratings are screwed left
@@ -31,19 +32,22 @@ ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
 # Compare collection sizes ------------------------------------------------
 # put gamers into quintiles, plot collection size for each
 # (158k gamers with 1,385k ratings)
-q5_qty_tbl <- collection_selected %>%
-  # quintiles by #games per gamer
+q10_qty_tbl <- collection_selected %>%
+  # 10 quantiles by #games per gamer
   count(gamer) %>%
   arrange(n) %>%
-  mutate(quant = rep(1:5, each=ceiling(length(gamer)/5))) %>%
+  mutate(quant = rep(1:10, each=ceiling(length(gamer)/10))) %>%
   # mean collection size per quintile
   group_by(quant) %>%
   summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
             games_sd = as.integer(sd(n, na.rm=TRUE)),
             games_max = max(n, na.rm=TRUE))
-ggplot(data=q5_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
-  ggtitle("Collection Sizes per Neighbor Quintiles") +
-  geom_col()
+ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
+  scale_x_continuous(breaks=seq(1,10)) +
+  scale_y_continuous(breaks=seq(0,1300, by=100)) +
+  labs(title="Games Rated per Gamer", x="Quantile", y="Mean") +
+  geom_col() +
+  geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
 
 
 # Ratings per mechanic ----------------------------------------------------
@@ -81,6 +85,30 @@ mech_count_tbl <- game_mech_tall %>%
   summarize(n=n()) %>%
   arrange(n)
 
-ggplot(mech_count_tbl, aes(mech, n)) +
+ggplot(mech_count_tbl, aes(reorder(mech, n), n)) +
+  labs(title="Games per Mechanic", x="mechanics", y=NULL) +
+  geom_col() +
+  coord_flip()
+
+
+
+# Ratings per category ----------------------------------------------------
+# game_attrs is tall, make it tidy with observation per game
+game_gcat_tall <- games_attrs %>%
+  # keep only the mechanics data
+  group_by(game.id) %>%
+  filter(key == "boardgamecategory") %>%
+  select(-one_of("key")) %>%
+  rename(gcat=value)
+
+# make each gcategory an observation with vars: n games
+gcat_count_tbl <- game_gcat_tall %>%
+  group_by(gcat) %>%
+  summarize(n=n()) %>%
+  arrange(n)
+
+# this orders the plot to match the table
+ggplot(gcat_count_tbl, aes(reorder(gcat, n), n)) +
+  labs(title="Games per Category", x="categories", y=NULL) +
   geom_col() +
   coord_flip()

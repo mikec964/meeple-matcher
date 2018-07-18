@@ -22,7 +22,8 @@ rating_prop_tbl <- games_ratings %>%
   mutate(prop = n/sum(n)) # proportion of customer or non-customer votes
 
 ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
-  ggtitle("Customer Ratings of Collection") +
+  labs(title="Game Ratings", y="proportion") +
+  scale_fill_discrete(name="Gamer", labels=c("All others", "Customer")) +
   scale_x_continuous(breaks=seq(0,10)) +
   geom_col(position="dodge")
 # note: ratings are screwed left
@@ -42,7 +43,7 @@ q5_qty_tbl <- collection_selected %>%
             games_sd = as.integer(sd(n, na.rm=TRUE)),
             games_max = max(n, na.rm=TRUE))
 ggplot(data=q5_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
-  ggtitle("Collection Sizes per Neighbor Quintiles") +
+  labs(title="Games Rated per Gamer", x="Quintile", y="Mean") +
   geom_col()
 
 
@@ -81,10 +82,8 @@ mech_count_tbl <- game_mech_tall %>%
   summarize(n=n()) %>%
   arrange(n)
 
-# this orders the plot to match the table
-mech_count_tbl$mech <- factor(mech_count_tbl$mech,
-                              levels=unique(as.character(mech_count_tbl$mech)) )
-ggplot(mech_count_tbl, aes(mech, n)) +
+ggplot(mech_count_tbl, aes(reorder(mech, n), n)) +
+  labs(title="Games per Mechanic", x="mechanics", y=NULL) +
   geom_col() +
   coord_flip()
 
@@ -92,22 +91,21 @@ ggplot(mech_count_tbl, aes(mech, n)) +
 
 # Ratings per category ----------------------------------------------------
 # game_attrs is tall, make it tidy with observation per game
-game_cat_tall <- games_attrs %>%
+game_gcat_tall <- games_attrs %>%
   # keep only the mechanics data
   group_by(game.id) %>%
   filter(key == "boardgamecategory") %>%
   select(-one_of("key")) %>%
-  rename(cat=value)
+  rename(gcat=value)
 
-# make each category an observation with vars: n games
-cat_count_tbl <- game_cat_tall %>%
-  group_by(cat) %>%
+# make each gcategory an observation with vars: n games
+gcat_count_tbl <- game_gcat_tall %>%
+  group_by(gcat) %>%
   summarize(n=n()) %>%
   arrange(n)
 
 # this orders the plot to match the table
-cat_count_tbl$cat <- factor(cat_count_tbl$cat,
-                              levels=unique(as.character(cat_count_tbl$cat)) )
-ggplot(cat_count_tbl, aes(cat, n)) +
+ggplot(gcat_count_tbl, aes(reorder(gcat, n), n)) +
+  labs(title="Games per Category", x="categories", y=NULL) +
   geom_col() +
   coord_flip()

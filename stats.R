@@ -32,19 +32,22 @@ ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
 # Compare collection sizes ------------------------------------------------
 # put gamers into quintiles, plot collection size for each
 # (158k gamers with 1,385k ratings)
-q5_qty_tbl <- collection_selected %>%
-  # quintiles by #games per gamer
+q10_qty_tbl <- collection_selected %>%
+  # 10 quantiles by #games per gamer
   count(gamer) %>%
   arrange(n) %>%
-  mutate(quant = rep(1:5, each=ceiling(length(gamer)/5))) %>%
+  mutate(quant = rep(1:10, each=ceiling(length(gamer)/10))) %>%
   # mean collection size per quintile
   group_by(quant) %>%
   summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
             games_sd = as.integer(sd(n, na.rm=TRUE)),
             games_max = max(n, na.rm=TRUE))
-ggplot(data=q5_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
-  labs(title="Games Rated per Gamer", x="Quintile", y="Mean") +
-  geom_col()
+ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
+  scale_x_continuous(breaks=seq(1,10)) +
+  scale_y_continuous(breaks=seq(0,1300, by=100)) +
+  labs(title="Games Rated per Gamer", x="Quantile", y="Mean") +
+  geom_col() +
+  geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
 
 
 # Ratings per mechanic ----------------------------------------------------

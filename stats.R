@@ -81,6 +81,33 @@ mech_count_tbl <- game_mech_tall %>%
   summarize(n=n()) %>%
   arrange(n)
 
+# this orders the plot to match the table
+mech_count_tbl$mech <- factor(mech_count_tbl$mech,
+                              levels=unique(as.character(mech_count_tbl$mech)) )
 ggplot(mech_count_tbl, aes(mech, n)) +
+  geom_col() +
+  coord_flip()
+
+
+
+# Ratings per category ----------------------------------------------------
+# game_attrs is tall, make it tidy with observation per game
+game_cat_tall <- games_attrs %>%
+  # keep only the mechanics data
+  group_by(game.id) %>%
+  filter(key == "boardgamecategory") %>%
+  select(-one_of("key")) %>%
+  rename(cat=value)
+
+# make each category an observation with vars: n games
+cat_count_tbl <- game_cat_tall %>%
+  group_by(cat) %>%
+  summarize(n=n()) %>%
+  arrange(n)
+
+# this orders the plot to match the table
+cat_count_tbl$cat <- factor(cat_count_tbl$cat,
+                              levels=unique(as.character(cat_count_tbl$cat)) )
+ggplot(cat_count_tbl, aes(cat, n)) +
   geom_col() +
   coord_flip()

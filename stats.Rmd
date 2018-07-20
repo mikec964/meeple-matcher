@@ -1,3 +1,12 @@
+---
+title: "Meeple Matcher Statistics"
+author: "mikec964"
+date: "7/20/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -9,11 +18,18 @@ game_ids_tbl <- collection_selected %>%
 gids <- game_ids_tbl$game.id
 names(gids) <- game_ids_tbl$game
 #names(gids[5])
+```
 
+# Compare collection sizes
+The project goal is to make game recommendations for the customer.
 
-# Compare collection sizes ------------------------------------------------
-# put gamers into quintiles, plot collection size for each
-# (158k gamers with 1,385k ratings)
+How does the collection size of the customer compare to other gamers?
+In this case we loaded the collections for all gamers who had at least one game
+in common with the customer.
+
+This resulted in loading 158K gamers who had rated 1.385 million games. The
+customer has 160 games in their collection, though only 60 are rated.
+```{r echo=FALSE, message=TRUE, warning=TRUE}
 q10_qty_tbl <- collection_selected %>%
   # 10 quantiles by #games per gamer
   count(gamer) %>%
@@ -30,11 +46,12 @@ ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
   labs(title="Games Rated per Gamer", x="Quantile", y="Mean") +
   geom_col() +
   geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
+```
 
-
-# Compare customer ratings to most ratings --------------------------------
-# games_ratings is tall and includes customer and neighbors
-# tidy the data by rating and customer/neighbor
+# Compare customer ratings to most ratings
+These charts show that ratings from the customer and other gamers both follow
+a normal distribution, slightly skewed left.
+```{r echo=FALSE, message=TRUE, warning=TRUE}
 games_ratings$customer <- games_ratings$gamer == customer
 rating_prop_tbl <- games_ratings %>%
   group_by(rating, customer) %>%
@@ -48,9 +65,15 @@ ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
   scale_x_continuous(breaks=seq(0,10)) +
   geom_col(position="dodge")
 # note: ratings are screwed left
+```
 
+# Rating per game
+Next, we learn a little more about what kinds of games the customer likes.
+Games have *mechanics*, like card-drafting, dice-rolling, and tile-laying. They
+also have *categories* like science-fiction, co-operative, and family.
 
-# Rating per game ----------------------------------------------------
+First we look at which mechanics are most common in the customer's collection.
+```{r echo=FALSE, message=TRUE, warning=TRUE}
 # calc mean rating per game
 game_rating_tbl <- collection_selected %>%
   group_by(game.id) %>%
@@ -59,7 +82,6 @@ game_rating_tbl <- collection_selected %>%
   filter(!is.nan(rating_mean)) %>%
   filter(!is.na(rating_sd))
 # result: 27k games (16K rated, 8K with >1 rating)
-
 
 # Games per mechanic ----------------------------------------------------
 # game_attrs is tall, make it tidy with observation per game
@@ -82,8 +104,14 @@ ggplot(mech_count_tbl, aes(reorder(mech, n), n)) +
   labs(title="Games per Mechanic", x="top 20 mechanics", y=NULL) +
   geom_col() +
   coord_flip()
+```
 
+It should be more interesting to know which mechanics are in the games that the
+customer likes. This chart shows that the customer often buys games with
+variable player powers and rates them higher. They less often buy games with
+player elimination and they rate them lower.
 
+```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Ratings per mech ---------------------------------------------------
 game_mech_tall$rating <- sapply(game_mech_tall$game.id, function(x){
   as.numeric(game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"])
@@ -107,9 +135,12 @@ ggplot(mech20_tbl, aes(mech, n, fill=rating_mu)) +
        x="top 20 mechanics", y="no. of games") +
   geom_col() +
   coord_flip()
+```
 
+# Games per category
+I look at game categories the same way.
 
-# Games per category ----------------------------------------------------
+```{r echo=FALSE, message=TRUE, warning=TRUE}
 # game_attrs is tall, make it tidy with observation per game
 game_gcat_tall <- games_attrs %>%
   # keep only the mechanics data
@@ -155,3 +186,9 @@ ggplot(gcat20_tbl, aes(gcat, n, fill=rating_mu)) +
        x="top 20 categories", y="no. of games") +
   geom_col() +
   coord_flip()
+```
+The customer has mostly science fiction games and rates them higher, and few
+movie-themed games rated lower. There are counter-examples, too: Miniatures
+games are purchased infrequently but highly rated.
+
+This might be an opportunity to recommend a type of game to play.

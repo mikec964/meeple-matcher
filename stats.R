@@ -50,7 +50,7 @@ ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
   geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
 
 
-# Ratings per mechanic ----------------------------------------------------
+# Rating per game ----------------------------------------------------
 # calc mean rating per game
 game_rating_tbl <- collection_selected %>%
   group_by(game.id) %>%
@@ -60,6 +60,8 @@ game_rating_tbl <- collection_selected %>%
   filter(!is.na(rating_sd))
 # result: 27k games (16K rated, 8K with >1 rating)
 
+
+# Ratings per mechanic ----------------------------------------------------
 # game_attrs is tall, make it tidy with observation per game
 game_mech_tall <- games_attrs %>%
   # keep only the mechanics data
@@ -67,17 +69,6 @@ game_mech_tall <- games_attrs %>%
   filter(key == "boardgamemechanic") %>%
   select(-one_of("key")) %>%
   rename(mech=value)
-
-game_mech_tbl <- game_mech_tall %>%
-  # make a col per mechanic
-  mutate(TF = 1) %>%
-  spread(mech, TF, fill=0, sep="-")
-# result: 158?! games, 43 variables
-
-# add ratings cols but keep only games with ratings
-game_mech_tbl <- game_rating_tbl %>%
-  inner_join(game_mech_tbl, by="game.id")
-# result: 150 games
 
 # make each mechanic an observation with vars: n games
 mech_count_tbl <- game_mech_tall %>%
@@ -89,18 +80,6 @@ ggplot(mech_count_tbl, aes(reorder(mech, n), n)) +
   labs(title="Games per Mechanic", x="mechanics", y=NULL) +
   geom_col() +
   coord_flip()
-
-
-# Calc ratings per mech ---------------------------------------------------
-game_mech_tall$rating <- sapply(game_mech_tall$game.id, function(x){
-  game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"]
-})
-
-mech_rating_tbl <- game_mech_tall %>%
-  # cols will be games, values will be game ratings
-  rename(gid=game.id) %>%
-  mutate(TF=rating) %>%
-  spread(gid, TF, fill=0, sep="-")
 
 
 # Ratings per category ----------------------------------------------------
@@ -121,5 +100,39 @@ gcat_count_tbl <- game_gcat_tall %>%
 # this orders the plot to match the table
 ggplot(gcat_count_tbl, aes(reorder(gcat, n), n)) +
   labs(title="Games per Category", x="categories", y=NULL) +
+  geom_col() +
+  coord_flip()
+
+
+# Calc ratings per mech ---------------------------------------------------
+game_mech_tall$rating <- sapply(game_mech_tall$game.id, function(x){
+  as.numeric(game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"])
+})
+
+mech_rating_tbl <- game_mech_tall %>%
+  # cols will be games, values will be game ratings
+  group_by(mech) %>%
+  summarize(rating_mu = mean(rating, na.rm=TRUE))
+
+ggplot(mech_rating_tbl, aes(mech, rating_mu)) +
+  labs(title="Ratings per Mechanic", x=NULL, y="Mean Rating") +
+  scale_y_discrete(breaks=seq(1, 10, by=0.5)) +
+  geom_col() +
+  coord_flip()
+
+
+# Calc ratings per category ----------------------------------------
+game_gcat_tall$rating <- sapply(game_gcat_tall$game.id, function(x){
+  as.numeric(game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"])
+})
+
+gcat_rating_tbl <- game_gcat_tall %>%
+  # cols will be games, values will be game ratings
+  group_by(gcat) %>%
+  summarize(rating_mu = mean(rating, na.rm=TRUE))
+
+ggplot(gcat_rating_tbl, aes(gcat, rating_mu)) +
+  labs(title="Ratings per Category", x=NULL, y="Mean Rating") +
+  scale_y_discrete(breaks=seq(1, 10, by=0.5)) +
   geom_col() +
   coord_flip()

@@ -11,24 +11,6 @@ names(gids) <- game_ids_tbl$game
 #names(gids[5])
 
 
-# Compare customer ratings to most ratings --------------------------------
-# games_ratings is tall and includes customer and neighbors
-# tidy the data by rating and customer/neighbor
-games_ratings$customer <- games_ratings$gamer == customer
-rating_prop_tbl <- games_ratings %>%
-  group_by(rating, customer) %>%
-  summarize(n = sum(rating)) %>%
-  group_by(customer) %>%
-  mutate(prop = n/sum(n)) # proportion of customer or non-customer votes
-
-ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
-  labs(title="Game Ratings", y="proportion") +
-  scale_fill_discrete(name="Gamer", labels=c("All others", "Customer")) +
-  scale_x_continuous(breaks=seq(0,10)) +
-  geom_col(position="dodge")
-# note: ratings are screwed left
-
-
 # Compare collection sizes ------------------------------------------------
 # put gamers into quintiles, plot collection size for each
 # (158k gamers with 1,385k ratings)
@@ -50,6 +32,24 @@ ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
   geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
 
 
+# Compare customer ratings to most ratings --------------------------------
+# games_ratings is tall and includes customer and neighbors
+# tidy the data by rating and customer/neighbor
+games_ratings$customer <- games_ratings$gamer == customer
+rating_prop_tbl <- games_ratings %>%
+  group_by(rating, customer) %>%
+  summarize(n = sum(rating)) %>%
+  group_by(customer) %>%
+  mutate(prop = n/sum(n)) # proportion of customer or non-customer votes
+
+ggplot(data=rating_prop_tbl, mapping=aes(x=rating, y=prop, fill=customer)) +
+  labs(title="Game Ratings", y="proportion") +
+  scale_fill_discrete(name="Gamer", labels=c("All others", "Customer")) +
+  scale_x_continuous(breaks=seq(0,10)) +
+  geom_col(position="dodge")
+# note: ratings are screwed left
+
+
 # Rating per game ----------------------------------------------------
 # calc mean rating per game
 game_rating_tbl <- collection_selected %>%
@@ -61,7 +61,7 @@ game_rating_tbl <- collection_selected %>%
 # result: 27k games (16K rated, 8K with >1 rating)
 
 
-# Ratings per mechanic ----------------------------------------------------
+# Games per mechanic ----------------------------------------------------
 # game_attrs is tall, make it tidy with observation per game
 game_mech_tall <- games_attrs %>%
   # keep only the mechanics data
@@ -74,37 +74,17 @@ game_mech_tall <- games_attrs %>%
 mech_count_tbl <- game_mech_tall %>%
   group_by(mech) %>%
   summarize(n=n()) %>%
-  arrange(n)
+  arrange(n) %>%
+  # top 20 mechanics
+  top_n(20, n)
 
 ggplot(mech_count_tbl, aes(reorder(mech, n), n)) +
-  labs(title="Games per Mechanic", x="mechanics", y=NULL) +
+  labs(title="Games per Mechanic", x="top 20 mechanics", y=NULL) +
   geom_col() +
   coord_flip()
 
 
-# Ratings per category ----------------------------------------------------
-# game_attrs is tall, make it tidy with observation per game
-game_gcat_tall <- games_attrs %>%
-  # keep only the mechanics data
-  group_by(game.id) %>%
-  filter(key == "boardgamecategory") %>%
-  select(-one_of("key")) %>%
-  rename(gcat=value)
-
-# make each gcategory an observation with vars: n games
-gcat_count_tbl <- game_gcat_tall %>%
-  group_by(gcat) %>%
-  summarize(n=n()) %>%
-  arrange(n)
-
-# this orders the plot to match the table
-ggplot(gcat_count_tbl, aes(reorder(gcat, n), n)) +
-  labs(title="Games per Category", x="categories", y=NULL) +
-  geom_col() +
-  coord_flip()
-
-
-# Calc ratings per mech ---------------------------------------------------
+# Ratings per mech ---------------------------------------------------
 game_mech_tall$rating <- sapply(game_mech_tall$game.id, function(x){
   as.numeric(game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"])
 })
@@ -120,8 +100,39 @@ ggplot(mech_rating_tbl, aes(mech, rating_mu)) +
   geom_col() +
   coord_flip()
 
+mech20_tbl <- mech_count_tbl %>%
+  left_join(mech_rating_tbl, by="mech")
+ggplot(mech20_tbl, aes(mech, n, fill=rating_mu)) +
+  labs(title="Game Mechanics and Ratings",
+       x="top 20 mechanics", y="no. of games") +
+  geom_col() +
+  coord_flip()
 
-# Calc ratings per category ----------------------------------------
+
+# Games per category ----------------------------------------------------
+# game_attrs is tall, make it tidy with observation per game
+game_gcat_tall <- games_attrs %>%
+  # keep only the mechanics data
+  group_by(game.id) %>%
+  filter(key == "boardgamecategory") %>%
+  select(-one_of("key")) %>%
+  rename(gcat=value)
+
+# make each gcategory an observation with vars: n games
+gcat_count_tbl <- game_gcat_tall %>%
+  group_by(gcat) %>%
+  summarize(n=n()) %>%
+  arrange(n) %>%
+  top_n(20, n)
+
+# this orders the plot to match the table
+ggplot(gcat_count_tbl, aes(reorder(gcat, n), n)) +
+  labs(title="Games per Category", x="top 20 categories", y=NULL) +
+  geom_col() +
+  coord_flip()
+
+
+# Ratings per category ----------------------------------------
 game_gcat_tall$rating <- sapply(game_gcat_tall$game.id, function(x){
   as.numeric(game_rating_tbl[game_rating_tbl$game.id == x, "rating_mean"])
 })
@@ -134,5 +145,13 @@ gcat_rating_tbl <- game_gcat_tall %>%
 ggplot(gcat_rating_tbl, aes(gcat, rating_mu)) +
   labs(title="Ratings per Category", x=NULL, y="Mean Rating") +
   scale_y_discrete(breaks=seq(1, 10, by=0.5)) +
+  geom_col() +
+  coord_flip()
+
+gcat20_tbl <- gcat_count_tbl %>%
+  left_join(gcat_rating_tbl, by="gcat")
+ggplot(gcat20_tbl, aes(gcat, n, fill=rating_mu)) +
+  labs(title="Game Categories and Ratings",
+       x="top 20 categories", y="no. of games") +
   geom_col() +
   coord_flip()

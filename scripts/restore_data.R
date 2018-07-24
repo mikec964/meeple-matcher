@@ -1,6 +1,7 @@
 # Restore data
 # This loads data previously collected and stored in tsv form
 
+library(dplyr)
 library(readr)
 
 #| variable            | count     | Description
@@ -16,17 +17,24 @@ library(readr)
 #| collection_selected | 80,342    | games owned by selected_gamers + customer
 
 customer <- "mikec"
-collection_customer <- read_tsv("tables/collection-customer.tsv")
 
-games_attrs         <- read_tsv("tables/games-attrs.tsv")
-games_categories    <- unique(
-  games_attrs[games_attrs$key == "boardgamecategory",]$value)
-games_mechanics     <- unique(
-  games_attrs[games_attrs$key == "boardgamemechanic",]$value)
+# These are the games in the collections of gamers, including
+# the customer and gamers that have at least 1 game in common with the customer
+gamer_collections_tall <- read_tsv("tables/collection-selected.tsv")
 
-games_ratings       <- read_tsv("tables/games-ratings.tsv")
+# Make it easy to look up a game name
+# (Some games have more than 1 name, this returns the 1st)
+game_ids_tbl <- gamer_collections_tall %>%
+  select(game, game.id) %>%
+  distinct(game.id, .keep_all=TRUE)
+bg_ids <- game_ids_tbl$game.id
+names(bg_ids) <- game_ids_tbl$game
+#names(bg_ids[5])
 
-gamers_adjacent     <- unique(games_ratings$gamer)
-gamers_selected     <- read_tsv("tables/gamers-selected.tsv")
-collection_selected <- read_tsv("tables/collection-selected.tsv")
+game_ratings_tbl   <- read_tsv("tables/games-ratings.tsv")
+game_attrs_tall    <- read_tsv("tables/games-attrs.tsv")
 
+# bg_cats    <- unique(
+#   game_attrs_tall[game_attrs_tall$key == "boardgamecategory",]$value)
+# bg_mechs     <- unique(
+#   game_attrs_tall[game_attrs_tall$key == "boardgamemechanic",]$value)

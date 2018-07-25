@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(ggplot2)
+library(scales)
 library(tidyr)
 
 source("scripts/restore_data.R")
@@ -46,17 +47,19 @@ ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
 These charts show that ratings from the customer and other gamers both follow
 a normal distribution, slightly skewed left.
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
-rating_props_tbl <- game_ratings_tbl %>%
+rating_props_tbl <- game_ratings_tall %>%
   mutate(is_customer = (gamer == customer)) %>%
   group_by(rating, is_customer) %>%
   summarize(n = sum(rating)) %>%
   group_by(is_customer) %>%
-  mutate(prop = n/sum(n)) # proportion of customer or non-customer votes
+  mutate(prop = n/sum(n)) %>% # proportion of customer or non-customer votes
+  filter(rating > 0)
 
 ggplot(data=rating_props_tbl, mapping=aes(x=rating, y=prop, fill=is_customer)) +
-  labs(title="Game Ratings", y="proportion") +
-  scale_fill_discrete(name="Gamer", labels=c("All others", "Customer")) +
-  scale_x_continuous(breaks=seq(0,10)) +
+  labs(title="Game Ratings (1-10)", x=NULL, y="Percentage") +
+  scale_fill_discrete(name="Gamer", labels=c("By others", "By customer")) +
+  scale_x_continuous(breaks=seq(1,10)) +
+  scale_y_continuous(labels = percent_format()) +
   geom_col(position="dodge")
 # note: ratings are screwed left
 ```

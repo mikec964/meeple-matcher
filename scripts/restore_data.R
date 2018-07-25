@@ -31,7 +31,7 @@ bg_ids <- game_ids_tbl$game.id
 names(bg_ids) <- game_ids_tbl$game
 #names(bg_ids[5])
 
-game_ratings_tbl   <- read_tsv("tables/games-ratings.tsv")
+game_ratings_tall   <- read_tsv("tables/games-ratings.tsv")
 game_attrs_tall    <- read_tsv("tables/games-attrs.tsv")
 
 # bg_cats    <- unique(

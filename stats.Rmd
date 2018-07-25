@@ -82,13 +82,19 @@ also have *categories* like science-fiction, co-operative, and family.
 First we look at which mechanics are most common in the customer's collection.
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # calc mean rating per game
+game_ratings1_tbl <- gamer_collections_tall %>%
+  filter(gamer == customer) %>%
+  filter(!is.na(rating)) %>%
+  select(game.id, rating) %>%
+  rename(cust_rating=rating)
+
 game_ratings_tbl <- gamer_collections_tall %>%
   group_by(game.id) %>%
-  summarize(rating_mean = mean(rating, na.rm=TRUE),
-            rating_sd = sd(rating, na.rm=TRUE)) %>%
-  filter(!is.nan(rating_mean)) %>%
-  filter(!is.na(rating_sd))
+  summarize(all_rating = mean(rating, na.rm=TRUE)) %>%
+  filter(!is.nan(all_rating)) %>%
+  full_join(game_ratings1_tbl, by="game.id")
 # result: 27k games (16K rated, 8K with >1 rating)
+
 
 # Games per mechanic ----------------------------------------------------
 # game_attrs is tall, make it tidy with observation per game
@@ -120,27 +126,27 @@ player elimination and they rate them lower.
 
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
 # Ratings per mech ---------------------------------------------------
-game_mechs_tall$rating <- sapply(game_mechs_tall$game.id, function(x){
-  as.numeric(game_ratings_tbl[game_ratings_tbl$game.id == x, "rating_mean"])
+game_mechs_tall$all_rating <- sapply(game_mechs_tall$game.id, function(x){
+  as.numeric(game_ratings_tbl[game_ratings_tbl$game.id == x, "all_rating"])
+})
+game_mechs_tall$cust_rating <- sapply(game_mechs_tall$game.id, function(x){
+  as.numeric(game_ratings_tbl[game_ratings_tbl$game.id == x, "cust_rating"])
 })
 
 mech_ratings_tbl <- game_mechs_tall %>%
   # cols will be games, values will be game ratings
   group_by(mech) %>%
-  summarize(rating_mu = mean(rating, na.rm=TRUE))
+  summarize(cust_rating = mean(cust_rating, na.rm=TRUE),
+            all_rating = mean(all_rating, na.rm=TRUE)) %>%
+  filter(!is.na(cust_rating)) %>% # drop mechanics not rated
+  mutate(pref = cust_rating - all_rating)
 
-ggplot(mech_ratings_tbl, aes(mech, rating_mu)) +
-  labs(title="Ratings per Mechanic", x=NULL, y="Mean Rating") +
-  scale_y_discrete(breaks=seq(1, 10, by=0.5)) +
-  geom_col() +
-  coord_flip()
-
-mech20_tbl <- mech_counts_tbl %>%
-  left_join(mech_ratings_tbl, by="mech")
-ggplot(mech20_tbl, aes(mech, n, fill=rating_mu)) +
-  labs(title="Game Mechanics and Ratings",
-       x="top 20 mechanics", y="no. of games") +
-  geom_col() +
+ggplot(mech_ratings_tbl, aes(reorder(mech, pref), pref)) +
+  labs(title="Customer's Preferred Mechanics", x="Mechanic", 
+       y="Rating by Customer - Rating by Others") +
+  theme(legend.position="bottom") +
+  geom_point() +
+  geom_segment(aes(x=1, xend=nrow(mech_ratings_tbl), y=0, yend=0), color="green") +
   coord_flip()
 ```
 

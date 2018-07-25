@@ -24,23 +24,33 @@ in common with the customer.
 
 This resulted in loading 158K gamers who had rated 1.385 million games. The
 customer has 160 games in their collection, though only 60 are rated.
+Collections were loaded for 1000 random gamers.
 ```{r echo=FALSE, message=TRUE, warning=TRUE}
-q10_qty_tbl <- gamer_collections_tall %>%
-  # 10 quantiles by #games per gamer
-  count(gamer) %>%
-  arrange(n) %>%
-  mutate(quant = rep(1:10, each=ceiling(length(gamer)/10))) %>%
-  # mean collection size per quintile
-  group_by(quant) %>%
-  summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
-            games_sd = as.integer(sd(n, na.rm=TRUE)),
-            games_max = max(n, na.rm=TRUE))
-ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
-  scale_x_continuous(breaks=seq(1,10)) +
-  scale_y_continuous(breaks=seq(0,1300, by=100)) +
-  labs(title="Games Rated per Gamer", x="Quantile", y="Mean") +
-  geom_col() +
-  geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
+collection_size_tbl <- gamer_collections_tall %>%
+  group_by(gamer) %>%
+  count(sort=TRUE)
+ggplot(collection_size_tbl, aes(n)) +
+  geom_histogram(binwidth=10) +
+  labs(title="Sizes of Game Collections (of 1000 gamers)", x="Games", y="No. of Gamers")
+```
+
+```{r echo=FALSE, message=TRUE, warning=TRUE}
+# q10_qty_tbl <- gamer_collections_tall %>%
+#   # 10 quantiles by #games per gamer
+#   count(gamer) %>%
+#   arrange(n) %>%
+#   mutate(quant = rep(1:10, each=ceiling(length(gamer)/10))) %>%
+#   # mean collection size per quintile
+#   group_by(quant) %>%
+#   summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
+#             games_sd = as.integer(sd(n, na.rm=TRUE)),
+#             games_max = max(n, na.rm=TRUE))
+# ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
+#   scale_x_continuous(breaks=seq(1,10)) +
+#   scale_y_continuous(breaks=seq(0,1300, by=100)) +
+#   labs(title="Games Rated per Gamer", x="Quantile", y="Mean") +
+#   geom_col() +
+#   geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
 ```
 
 # Compare customer ratings to most ratings

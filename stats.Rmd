@@ -25,7 +25,7 @@ in common with the customer.
 This resulted in loading 158K gamers who had rated 1.385 million games. The
 customer has 160 games in their collection, though only 60 are rated.
 Collections were loaded for 1000 random gamers.
-```{r echo=FALSE, message=TRUE, warning=TRUE}
+```{r collection size histogram, echo=FALSE, message=TRUE, warning=TRUE}
 collection_size_tbl <- gamer_collections_tall %>%
   group_by(gamer) %>%
   count(sort=TRUE)
@@ -34,7 +34,7 @@ ggplot(collection_size_tbl, aes(n)) +
   labs(title="Sizes of Game Collections (of 1000 gamers)", x="Games", y="No. of Gamers")
 ```
 
-```{r echo=FALSE, message=TRUE, warning=TRUE}
+```{r collection size quintiles, echo=FALSE, message=TRUE, warning=TRUE}
 # q10_qty_tbl <- gamer_collections_tall %>%
 #   # 10 quantiles by #games per gamer
 #   count(gamer) %>%
@@ -56,7 +56,7 @@ ggplot(collection_size_tbl, aes(n)) +
 # Compare customer ratings to most ratings
 These charts show that ratings from the customer and other gamers both follow
 a normal distribution, slightly skewed left.
-```{r echo=FALSE, message=TRUE, warning=TRUE}
+```{r Bar chart of games per rating, echo=FALSE, message=TRUE, warning=TRUE}
 rating_props_tbl <- game_ratings_tall %>%
   mutate(is_customer = (gamer == customer)) %>%
   group_by(rating, is_customer) %>%
@@ -72,16 +72,8 @@ ggplot(data=rating_props_tbl, mapping=aes(x=rating, y=prop, fill=is_customer)) +
   scale_y_continuous(labels = percent_format()) +
   geom_col(position="dodge")
 # note: ratings are screwed left
-```
 
-# Rating per game
-Next, we learn a little more about what kinds of games the customer likes.
-Games have *mechanics*, like card-drafting, dice-rolling, and tile-laying. They
-also have *categories* like science-fiction, co-operative, and family.
-
-First we look at which mechanics are most common in the customer's collection.
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-# calc mean rating per game
+# Also calc rating per game by customer and by others
 game_ratings1_tbl <- gamer_collections_tall %>%
   filter(gamer == customer) %>%
   filter(!is.na(rating)) %>%
@@ -94,54 +86,64 @@ game_ratings_tbl <- gamer_collections_tall %>%
   filter(!is.nan(all_rating)) %>%
   full_join(game_ratings1_tbl, by="game.id")
 # result: 27k games (16K rated, 8K with >1 rating)
+```
 
 
-# Games per mechanic ----------------------------------------------------
+# Rating per game
+Next, we learn a little more about what kinds of games the customer likes.
+Games have *mechanics*, like card-drafting, dice-rolling, and tile-laying. They
+also have *categories* like science-fiction, co-operative, and family.
+
+First we look at which mechanics are most common in the customer's collection.
+```{r Plot games per mechanic, echo=FALSE, message=TRUE, warning=TRUE}
 # game_attrs is tall, make it tidy with observation per game
-game_mechs_tall <- game_attrs_tall %>%
-  # keep only the mechanics data
+get_attrs <- function(df_tall, sel_attr) {
+  # Use this to get "boardgamemechanic" or "boardgamecategory"
+  attrs_tall <- df_tall %>%
   group_by(game.id) %>%
-  filter(key == "boardgamemechanic") %>%
+  filter(key == sel_attr) %>%
   select(-one_of("key")) %>%
-  rename(mech=value)
-
-# make each mechanic an observation with vars: n games
-mech_counts_tbl <- game_mechs_tall %>%
-  group_by(mech) %>%
+  rename(attr=value)
+}
+get_counts <- function(df_tall, max_n) {
+  counts_tall <- df_tall %>%
+  group_by(attr) %>%
   summarize(n=n()) %>%
   arrange(n) %>%
   # top 20 mechanics
   top_n(20, n)
+}
 
-ggplot(mech_counts_tbl, aes(reorder(mech, n), n)) +
-  labs(title="Games per Mechanic", x="top 20 mechanics", y=NULL) +
+game_mechs_tall <- get_attrs(game_attrs_tall, "boardgamemechanic")
+mech_counts_tbl <- get_counts(game_mechs_tall, 20)
+
+ggplot(mech_counts_tbl, aes(reorder(attr, n), n)) +
+  labs(title="Games per Mechanic", x="Top 20 Mechanics", y=NULL) +
   geom_col() +
   coord_flip()
 ```
 
-It should be more interesting to know which mechanics are in the games that the
-customer likes. This chart shows that the customer often buys games with
-variable player powers and rates them higher. They less often buy games with
-player elimination and they rate them lower.
-
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-# Ratings per mech ---------------------------------------------------
-game_mechs_tall$all_rating <- sapply(game_mechs_tall$game.id, function(x){
-  as.numeric(game_ratings_tbl[game_ratings_tbl$game.id == x, "all_rating"])
-})
-game_mechs_tall$cust_rating <- sapply(game_mechs_tall$game.id, function(x){
-  as.numeric(game_ratings_tbl[game_ratings_tbl$game.id == x, "cust_rating"])
-})
-
-mech_ratings_tbl <- game_mechs_tall %>%
+For each mechanic, this chart shows the difference between the
+customer and the overall rating.
+```{r Plot ratings per mech, echo=FALSE, message=TRUE, warning=TRUE}
+get_ratings <- function(df_tall, ratings_tbl) {
+  df_tall$all_rating <- sapply(df_tall$game.id, function(x){
+    as.numeric(ratings_tbl[ratings_tbl$game.id == x, "all_rating"])
+  })
+  df_tall$cust_rating <- sapply(df_tall$game.id, function(x){
+    as.numeric(ratings_tbl[ratings_tbl$game.id == x, "cust_rating"])
+  })
+  ratings_tbl <- df_tall %>%
   # cols will be games, values will be game ratings
-  group_by(mech) %>%
+  group_by(attr) %>%
   summarize(cust_rating = mean(cust_rating, na.rm=TRUE),
             all_rating = mean(all_rating, na.rm=TRUE)) %>%
   filter(!is.na(cust_rating)) %>% # drop mechanics not rated
   mutate(pref = cust_rating - all_rating)
+}
+mech_ratings_tbl <- get_ratings(game_mechs_tall, game_ratings_tbl)
 
-ggplot(mech_ratings_tbl, aes(reorder(mech, pref), pref)) +
+ggplot(mech_ratings_tbl, aes(reorder(attr, pref), pref)) +
   labs(title="Customer's Preferred Mechanics", x="Mechanic", 
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
@@ -151,54 +153,35 @@ ggplot(mech_ratings_tbl, aes(reorder(mech, pref), pref)) +
 ```
 
 # Games per category
-I look at game categories the same way.
+I look at game categories the same way. Which categories are often selected?
+```{r games per category, echo=FALSE, message=TRUE, warning=TRUE}
+game_gcats_tall <- get_attrs(game_attrs_tall, "boardgamecategory")
+gcat_counts_tbl <- get_counts(game_gcats_tall, 20)
 
-```{r echo=FALSE, message=TRUE, warning=TRUE}
-# game_attrs is tall, make it tidy with observation per game
-game_gcats_tall <- game_attrs_tall %>%
-  # keep only the mechanics data
-  group_by(game.id) %>%
-  filter(key == "boardgamecategory") %>%
-  select(-one_of("key")) %>%
-  rename(gcat=value)
-
-# make each gcategory an observation with vars: n games
-gcat_counts_tbl <- game_gcats_tall %>%
-  group_by(gcat) %>%
-  summarize(n=n()) %>%
-  arrange(n) %>%
-  top_n(20, n)
-
-# this orders the plot to match the table
-ggplot(gcat_counts_tbl, aes(reorder(gcat, n), n)) +
-  labs(title="Games per Category", x="top 20 categories", y=NULL) +
+ggplot(gcat_counts_tbl, aes(reorder(attr, n), n)) +
+  labs(title="Games per Category", x="Top 20 Categories", y=NULL) +
   geom_col() +
   coord_flip()
+```
 
+```{r Plot ratings per category, echo=FALSE, message=TRUE, warning=TRUE}
+gcat_ratings_tbl <- get_ratings(game_gcats_tall, game_ratings_tbl)
 
-# Ratings per category ----------------------------------------
-game_gcats_tall$rating <- sapply(game_gcats_tall$game.id, function(x){
-  as.numeric(game_ratings_tbl[game_ratings_tbl$game.id == x, "rating_mean"])
-})
-
-gcat_ratings_tbl <- game_gcats_tall %>%
-  # cols will be games, values will be game ratings
-  group_by(gcat) %>%
-  summarize(rating_mu = mean(rating, na.rm=TRUE))
-
-ggplot(gcat_ratings_tbl, aes(gcat, rating_mu)) +
-  labs(title="Ratings per Category", x=NULL, y="Mean Rating") +
-  scale_y_discrete(breaks=seq(1, 10, by=0.5)) +
-  geom_col() +
+ggplot(gcat_ratings_tbl, aes(reorder(attr, pref), pref)) +
+  labs(title="Customer's Preferred Categories", x="Category", 
+       y="Rating by Customer - Rating by Others") +
+  theme(legend.position="bottom") +
+  geom_point() +
+  geom_segment(aes(x=1, xend=nrow(gcat_ratings_tbl), y=0, yend=0), color="green") +
   coord_flip()
 
-gcat20_tbl <- gcat_counts_tbl %>%
-  left_join(gcat_ratings_tbl, by="gcat")
-ggplot(gcat20_tbl, aes(gcat, n, fill=rating_mu)) +
-  labs(title="Game Categories and Ratings",
-       x="top 20 categories", y="no. of games") +
-  geom_col() +
-  coord_flip()
+# gcat20_tbl <- gcat_counts_tbl %>%
+#   left_join(gcat_ratings_tbl, by="gcat")
+# ggplot(gcat20_tbl, aes(gcat, n, fill=rating_mu)) +
+#   labs(title="Game Categories and Ratings",
+#        x="top 20 categories", y="no. of games") +
+#   geom_col() +
+#   coord_flip()
 ```
 The customer has mostly science fiction games and rates them higher, and few
 movie-themed games rated lower. There are counter-examples, too: Miniatures

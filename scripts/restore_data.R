@@ -26,13 +26,13 @@ gamer_collections_tall <- read_tsv("tables/collection-selected.tsv")
 # (Some games have more than 1 name, this returns the 1st)
 game_ids_tbl <- gamer_collections_tall %>%
   select(game, game.id) %>%
-  distinct(game.id, .keep_all=TRUE)
+  distinct(game.id, .keep_all = TRUE)
 bg_ids <- game_ids_tbl$game.id
 names(bg_ids) <- game_ids_tbl$game
-#names(bg_ids[5])
+# names(bg_ids[5])
 
-game_ratings_tall   <- read_tsv("tables/games-ratings.tsv")
-game_attrs_tall    <- read_tsv("tables/games-attrs.tsv")
+game_ratings_tall <- read_tsv("tables/games-ratings.tsv")
+game_attrs_tall <- read_tsv("tables/games-attrs.tsv")
 
 # bg_cats    <- unique(
 #   game_attrs_tall[game_attrs_tall$key == "boardgamecategory",]$value)

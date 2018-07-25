@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+remove(list=ls())
 library(dplyr)
 library(ggplot2)
 library(scales)
@@ -28,10 +29,27 @@ Collections were loaded for 1000 random gamers.
 ```{r collection size histogram, echo=FALSE, message=TRUE, warning=TRUE}
 collection_size_tbl <- gamer_collections_tall %>%
   group_by(gamer) %>%
-  count(sort=TRUE)
+  count(sort = TRUE) %>%
+  arrange(n)
 ggplot(collection_size_tbl, aes(n)) +
-  geom_histogram(binwidth=10) +
-  labs(title="Sizes of Game Collections (of 1000 gamers)", x="Games", y="No. of Gamers")
+  geom_histogram(binwidth = 10) +
+  labs(
+    title = "Sizes of Game Collections (of 1000 gamers)",
+    x = "Games", y = "No. of Gamers"
+  )
+ggplot(collection_size_tbl[1:500, ], aes(n)) +
+  geom_histogram(binwidth = 5) +
+  labs(
+    title = "Sizes of Game Collections (of bottom 500 gamers)",
+    x = "Games", y = "No. of Gamers"
+  )
+ggplot(collection_size_tbl[501:1000, ], aes(n)) +
+  geom_histogram(binwidth = 5) +
+  labs(
+    title = "Sizes of Game Collections (of top 500 gamers)",
+    x = "Games", y = "No. of Gamers"
+  )
+
 ```
 
 ```{r collection size quintiles, echo=FALSE, message=TRUE, warning=TRUE}
@@ -62,15 +80,15 @@ rating_props_tbl <- game_ratings_tall %>%
   group_by(rating, is_customer) %>%
   summarize(n = sum(rating)) %>%
   group_by(is_customer) %>%
-  mutate(prop = n/sum(n)) %>% # proportion of customer or non-customer votes
+  mutate(prop = n / sum(n)) %>% # proportion of customer or non-customer votes
   filter(rating > 0)
 
-ggplot(data=rating_props_tbl, mapping=aes(x=rating, y=prop, fill=is_customer)) +
-  labs(title="Game Ratings (1-10)", x=NULL, y="Percentage") +
-  scale_fill_discrete(name="Gamer", labels=c("By others", "By customer")) +
-  scale_x_continuous(breaks=seq(1,10)) +
+ggplot(rating_props_tbl, aes(x = rating, y = prop, fill = is_customer)) +
+  labs(title = "Game Ratings (1-10)", x = NULL, y = "Percentage") +
+  scale_fill_discrete(name = "Gamer", labels = c("By others", "By customer")) +
+  scale_x_continuous(breaks = seq(1, 10)) +
   scale_y_continuous(labels = percent_format()) +
-  geom_col(position="dodge")
+  geom_col(position = "dodge")
 # note: ratings are screwed left
 
 # Also calc rating per game by customer and by others
@@ -78,14 +96,15 @@ game_ratings1_tbl <- gamer_collections_tall %>%
   filter(gamer == customer) %>%
   filter(!is.na(rating)) %>%
   select(game.id, rating) %>%
-  rename(cust_rating=rating)
+  rename(cust_rating = rating)
 
 game_ratings_tbl <- gamer_collections_tall %>%
   group_by(game.id) %>%
-  summarize(all_rating = mean(rating, na.rm=TRUE)) %>%
+  summarize(all_rating = mean(rating, na.rm = TRUE)) %>%
   filter(!is.nan(all_rating)) %>%
-  full_join(game_ratings1_tbl, by="game.id")
+  full_join(game_ratings1_tbl, by = "game.id")
 # result: 27k games (16K rated, 8K with >1 rating)
+
 ```
 
 
@@ -119,7 +138,7 @@ mech_counts_tbl <- get_counts(game_mechs_tall, 20)
 
 ggplot(mech_counts_tbl, aes(reorder(attr, n), n)) +
   labs(title="Games per Mechanic", x="Top 20 Mechanics", y=NULL) +
-  geom_col() +
+  geom_col(fill="blue") +
   coord_flip()
 ```
 
@@ -148,7 +167,8 @@ ggplot(mech_ratings_tbl, aes(reorder(attr, pref), pref)) +
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
   geom_point() +
-  geom_segment(aes(x=1, xend=nrow(mech_ratings_tbl), y=0, yend=0), color="green") +
+  geom_segment(aes(x=1, xend=nrow(mech_ratings_tbl), y=0, yend=0), 
+               color="blue") +
   coord_flip()
 ```
 
@@ -160,7 +180,7 @@ gcat_counts_tbl <- get_counts(game_gcats_tall, 20)
 
 ggplot(gcat_counts_tbl, aes(reorder(attr, n), n)) +
   labs(title="Games per Category", x="Top 20 Categories", y=NULL) +
-  geom_col() +
+  geom_col(fill="purple") +
   coord_flip()
 ```
 
@@ -172,16 +192,9 @@ ggplot(gcat_ratings_tbl, aes(reorder(attr, pref), pref)) +
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
   geom_point() +
-  geom_segment(aes(x=1, xend=nrow(gcat_ratings_tbl), y=0, yend=0), color="green") +
+  geom_segment(aes(x=1, xend=nrow(gcat_ratings_tbl), y=0, yend=0),
+               color="purple") +
   coord_flip()
-
-# gcat20_tbl <- gcat_counts_tbl %>%
-#   left_join(gcat_ratings_tbl, by="gcat")
-# ggplot(gcat20_tbl, aes(gcat, n, fill=rating_mu)) +
-#   labs(title="Game Categories and Ratings",
-#        x="top 20 categories", y="no. of games") +
-#   geom_col() +
-#   coord_flip()
 ```
 The customer has mostly science fiction games and rates them higher, and few
 movie-themed games rated lower. There are counter-examples, too: Miniatures

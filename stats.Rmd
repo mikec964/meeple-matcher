@@ -37,16 +37,10 @@ ggplot(collection_size_tbl, aes(n)) +
     title = "Sizes of Game Collections (of 1000 gamers)",
     x = "Games", y = "No. of Gamers"
   )
-ggplot(collection_size_tbl[1:500, ], aes(n)) +
-  geom_histogram(binwidth = 5) +
+ggplot(collection_size_tbl[1:800, ], aes(n)) +
+  geom_histogram(binwidth = 10) +
   labs(
-    title = "Sizes of Game Collections (of bottom 500 gamers)",
-    x = "Games", y = "No. of Gamers"
-  )
-ggplot(collection_size_tbl[501:1000, ], aes(n)) +
-  geom_histogram(binwidth = 5) +
-  labs(
-    title = "Sizes of Game Collections (of top 500 gamers)",
+    title = "Sizes of Game Collections (of bottom 800 gamers)",
     x = "Games", y = "No. of Gamers"
   )
 
@@ -75,7 +69,7 @@ ggplot(collection_size_tbl[501:1000, ], aes(n)) +
 These charts show that ratings from the customer and other gamers both follow
 a normal distribution, slightly skewed left.
 ```{r Bar chart of games per rating, echo=FALSE, message=TRUE, warning=TRUE}
-rating_props_tbl <- game_ratings_tall %>%
+rating_props_tbl <- bg_ratings_tall %>%
   mutate(is_customer = (gamer == customer)) %>%
   group_by(rating, is_customer) %>%
   summarize(n = sum(rating)) %>%
@@ -90,20 +84,25 @@ ggplot(rating_props_tbl, aes(x = rating, y = prop, fill = is_customer)) +
   scale_y_continuous(labels = percent_format()) +
   geom_col(position = "dodge")
 # note: ratings are screwed left
+```
 
+```{r Bar chart of games per rating, echo=FALSE, message=TRUE, warning=TRUE}
 # Also calc rating per game by customer and by others
-game_ratings1_tbl <- gamer_collections_tall %>%
-  filter(gamer == customer) %>%
+bg_ratings_tbl <- gamer_collections_tall %>%
   filter(!is.na(rating)) %>%
-  select(game.id, rating) %>%
-  rename(cust_rating = rating)
-
-game_ratings_tbl <- gamer_collections_tall %>%
+  select(game.id, gamer, rating) %>%
+  mutate(is_cust = (gamer == customer),
+         c_rating = is_cust * rating,
+         c_rating = na_if(c_rating, 0),
+         a_rating  = (!is_cust) * rating,
+         a_rating  = na_if(a_rating, 0))
+bg_ratings_tbl <- bg_ratings_tbl %>%
   group_by(game.id) %>%
-  summarize(all_rating = mean(rating, na.rm = TRUE)) %>%
-  filter(!is.nan(all_rating)) %>%
-  full_join(game_ratings1_tbl, by = "game.id")
-# result: 27k games (16K rated, 8K with >1 rating)
+  summarize(n = n(),
+            cust_rating = sum(c_rating, na.rm = TRUE),
+            cust_rating = na_if(cust_rating, 0),
+            all_ratings  = mean(a_rating, na.rm = TRUE))
+# result: Of 27k games, 16K rated, 8K with >1 rating
 
 ```
 
@@ -115,28 +114,39 @@ also have *categories* like science-fiction, co-operative, and family.
 
 First we look at which mechanics are most common in the customer's collection.
 ```{r Plot games per mechanic, echo=FALSE, message=TRUE, warning=TRUE}
-# game_attrs is tall, make it tidy with observation per game
-get_attrs <- function(df_tall, sel_attr) {
-  # Use this to get "boardgamemechanic" or "boardgamecategory"
-  attrs_tall <- df_tall %>%
-  group_by(game.id) %>%
-  filter(key == sel_attr) %>%
-  select(-one_of("key")) %>%
-  rename(attr=value)
-}
-get_counts <- function(df_tall, max_n) {
-  counts_tall <- df_tall %>%
-  group_by(attr) %>%
-  summarize(n=n()) %>%
-  arrange(n) %>%
-  # top 20 mechanics
-  top_n(20, n)
+#' Get a list of values for an attribute
+#'
+#' @param bg_attr "boardgamemechanic" or "boardgamecategory"
+#' @param bg_attrs_tall A tall table of game.id and key/value pairs.
+#' @param bg_ratings_tbl A table of games with customer and overall ratings.
+#' @return A table of values and count of games with that value.
+get_attr_stats <- function(bg_attr, 
+                           attrs_tall = bg_attrs_tall, 
+                           ratings_tbl = bg_ratings_tbl) {
+  attr_stats <- attrs_tall %>%
+    # tall with game.id * attribute (mechanic) rows,
+    #     n (count of ratings), cust_rating, all_ratings
+    group_by(game.id) %>%
+    filter(key == bg_attr) %>%
+    select(-one_of("key")) %>%
+    inner_join(ratings_tbl, by = "game.id")
+  
+  attr_stats2 <- attr_stats %>%
+    # table of attribute values (mechanics),
+    #   n_games (games with attr value)
+    group_by(value) %>%
+    summarize(n_games = n(),
+              n_ratings = sum(n),
+              cust_rating_wt = mean(cust_rating, na.rm = TRUE),
+              all_ratings_wt = sum(all_ratings * n) / sum(n)) %>%
+    arrange(desc(cust_rating_wt))
+
+  # Is this n_games overall or n_games by customer?
 }
 
-game_mechs_tall <- get_attrs(game_attrs_tall, "boardgamemechanic")
-mech_counts_tbl <- get_counts(game_mechs_tall, 20)
-
-ggplot(mech_counts_tbl, aes(reorder(attr, n), n)) +
+mech_ratings_tbl <- get_attr_stats("boardgamemechanic")
+mech_ratings_tbl <- subset(mech_ratings_tbl, !is.na(cust_rating_wt))
+ggplot(mech_ratings_tbl[1:25, ], aes(reorder(value, n_games), n_games)) +
   labs(title="Games per Mechanic", x="Top 20 Mechanics", y=NULL) +
   geom_col(fill="blue") +
   coord_flip()
@@ -145,29 +155,13 @@ ggplot(mech_counts_tbl, aes(reorder(attr, n), n)) +
 For each mechanic, this chart shows the difference between the
 customer and the overall rating.
 ```{r Plot ratings per mech, echo=FALSE, message=TRUE, warning=TRUE}
-get_ratings <- function(df_tall, ratings_tbl) {
-  df_tall$all_rating <- sapply(df_tall$game.id, function(x){
-    as.numeric(ratings_tbl[ratings_tbl$game.id == x, "all_rating"])
-  })
-  df_tall$cust_rating <- sapply(df_tall$game.id, function(x){
-    as.numeric(ratings_tbl[ratings_tbl$game.id == x, "cust_rating"])
-  })
-  ratings_tbl <- df_tall %>%
-  # cols will be games, values will be game ratings
-  group_by(attr) %>%
-  summarize(cust_rating = mean(cust_rating, na.rm=TRUE),
-            all_rating = mean(all_rating, na.rm=TRUE)) %>%
-  filter(!is.na(cust_rating)) %>% # drop mechanics not rated
-  mutate(pref = cust_rating - all_rating)
-}
-mech_ratings_tbl <- get_ratings(game_mechs_tall, game_ratings_tbl)
-
-ggplot(mech_ratings_tbl, aes(reorder(attr, pref), pref)) +
+mech_ratings_tbl$pref <- mech_ratings_tbl$cust_rating_wt - mech_ratings_tbl$all_ratings_wt
+ggplot(mech_ratings_tbl[1:25, ], aes(reorder(value, pref), pref)) +
   labs(title="Customer's Preferred Mechanics", x="Mechanic", 
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
   geom_point() +
-  geom_segment(aes(x=1, xend=nrow(mech_ratings_tbl), y=0, yend=0), 
+  geom_segment(aes(x=1, xend=25, y=0, yend=0), 
                color="blue") +
   coord_flip()
 ```
@@ -175,24 +169,22 @@ ggplot(mech_ratings_tbl, aes(reorder(attr, pref), pref)) +
 # Games per category
 I look at game categories the same way. Which categories are often selected?
 ```{r games per category, echo=FALSE, message=TRUE, warning=TRUE}
-game_gcats_tall <- get_attrs(game_attrs_tall, "boardgamecategory")
-gcat_counts_tbl <- get_counts(game_gcats_tall, 20)
-
-ggplot(gcat_counts_tbl, aes(reorder(attr, n), n)) +
+gcat_ratings_tbl <- get_attr_stats("boardgamecategory")
+gcat_ratings_tbl <- subset(gcat_ratings_tbl, !is.na(cust_rating_wt))
+ggplot(gcat_ratings_tbl[1:25,], aes(reorder(value, n_games), n_games)) +
   labs(title="Games per Category", x="Top 20 Categories", y=NULL) +
   geom_col(fill="purple") +
   coord_flip()
 ```
 
 ```{r Plot ratings per category, echo=FALSE, message=TRUE, warning=TRUE}
-gcat_ratings_tbl <- get_ratings(game_gcats_tall, game_ratings_tbl)
-
-ggplot(gcat_ratings_tbl, aes(reorder(attr, pref), pref)) +
+gcat_ratings_tbl$pref <- gcat_ratings_tbl$cust_rating_wt - gcat_ratings_tbl$all_ratings_wt
+ggplot(gcat_ratings_tbl[1:25, ], aes(reorder(value, pref), pref)) +
   labs(title="Customer's Preferred Categories", x="Category", 
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
   geom_point() +
-  geom_segment(aes(x=1, xend=nrow(gcat_ratings_tbl), y=0, yend=0),
+  geom_segment(aes(x=1, xend=25, y=0, yend=0),
                color="purple") +
   coord_flip()
 ```

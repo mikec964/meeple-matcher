@@ -1,0 +1,25 @@
+---
+title: "predict.Rmd"
+author: "mikec964"
+date: "7/31/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+remove(list=ls())
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(scales)
+library(tidyr)
+
+source("scripts/restore_data.R")
+source("scripts/calc_ratings.R")
+```
+
+# Predict Game Ratings
+
+Based on attributes of games within the customer's collection, we will try
+to predict the customer's rating of the game. 
+

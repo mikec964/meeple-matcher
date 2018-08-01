@@ -18,9 +18,13 @@ source("scripts/restore_data.R")
 source("scripts/calc_ratings.R")
 ```
 
-# Compare collection sizes
-The project goal is to make game recommendations for the customer.
+The project goal is to make game recommendations for the customer. By comparing
+the customer's collection of games to other collections I hope to find out where
+the customer ranks within the gaming community and if there are any clear
+preferences in game types or differences in preferences from the community. (All
+data pulled from www.boardgamegeek.com)
 
+## Compare collection sizes
 How does the collection size of the customer compare to other gamers? Over
 158,000 gamers had at least one game in common with the customer. I selected
 1000 of those gamers at random and loaded their collections.
@@ -52,29 +56,11 @@ ggplot(collection_size_tbl[1:800, ], aes(n)) +
   ) +
   geom_segment(aes(x=n_rated_cust, xend=n_rated_cust, 
                    y=0, yend=60), color="turquoise") +
-  geom_label(aes(x=250, y=50), label="Customer's collection in green")
+  geom_label(aes(x=250, y=50), label="Customer's collection in teal")
 ```
 
-```{r collection size quintiles, echo=FALSE, message=TRUE, warning=TRUE}
-# q10_qty_tbl <- gamer_collections_tall %>%
-#   # 10 quantiles by #games per gamer
-#   count(gamer) %>%
-#   arrange(n) %>%
-#   mutate(quant = rep(1:10, each=ceiling(length(gamer)/10))) %>%
-#   # mean collection size per quintile
-#   group_by(quant) %>%
-#   summarize(games_mu = as.integer(mean(n, na.rm=TRUE)),
-#             games_sd = as.integer(sd(n, na.rm=TRUE)),
-#             games_max = max(n, na.rm=TRUE))
-# ggplot(data=q10_qty_tbl, mapping=aes(x=quant, y=games_mu)) +
-#   scale_x_continuous(breaks=seq(1,10)) +
-#   scale_y_continuous(breaks=seq(0,1300, by=100)) +
-#   labs(title="Games Rated per Gamer", x="Quantile", y="Mean") +
-#   geom_col() +
-#   geom_text(aes(x=quant, y=games_mu + 60, label=games_mu))
-```
 
-# Compare customer ratings to most ratings
+## Compare customer ratings to most ratings
 These charts show that ratings from the customer and other gamers both follow
 a normal distribution, slightly skewed left.
 
@@ -98,19 +84,21 @@ ggplot(rating_props_tbl, aes(x = rating, y = prop, fill = is_customer)) +
 
 
 
-# Rating per game attributes
+## Rating per game attributes
 Next, we learn a little more about what kinds of games the customer likes.
 Games have *mechanics*, like card-drafting, dice-rolling, and tile-laying. They
 also have *categories* like science-fiction, co-operative, and family.
 
 First we look at which mechanics are most common in the customer's collection.
+This will be interesting later: Line drawing is next to the bottom of the list,
+with 2 games.
 
 ```{r Plot games per mechanic, echo=FALSE, message=TRUE, warning=TRUE}
 bg_ratings_tbl <- calc_bg_ratings(bg_ratings_tall)
 mech_ratings_tbl <- arrange(calc_attr_ratings("boardgamemechanic"),
                             desc(n_cust_games))
-ggplot(mech_ratings_tbl[1:20, ], aes(reorder(value, n_games), n_games)) +
-  labs(title="Customer's Games per Mechanic", x="Top 20 Mechanics", y=NULL) +
+ggplot(mech_ratings_tbl, aes(reorder(value, n_games), n_games)) +
+  labs(title="Customer's Games per Mechanic", x="Game Mechanics", y=NULL) +
   geom_col(fill="blue") +
   coord_flip()
 ```
@@ -118,6 +106,7 @@ ggplot(mech_ratings_tbl[1:20, ], aes(reorder(value, n_games), n_games)) +
 Since some mechanics are more common in games than others, we also look at the
 customer's rating of games with each mechanic. I removed games rated under 6
 from the chart. Some observations:
+
 * Variable player powers is a top purchase and well-rated (6.7)
 * Variable phase order rarely in purchases (not in top 20) but highly-rated (8.0)
 * Cooperative play is both a top-5 purchase and highly-rated (6.9)
@@ -126,12 +115,13 @@ Mechanics at the bottom right of the table are in games the customer enjoyed
 but does not have very many of, and might be a good place to look for fresh
 recommendations.
 
-Mechanics at the top right are in games the customer enjoyed and has often
-purchased, so they might be safe bets for games that will be liked.
+Mechanics at the top right are in games the customer enjoyed and has purchased
+more often than other gamers, so they might be safe bets for games that 
+will be liked.
 
 ```{r Plot ownership per mech, echo=FALSE, message=TRUE, warning=FALSE}
-mech_ratings_tbl <- subset(mech_ratings_tbl, cust_rating_wt >= 6)
-ggplot(mech_ratings_tbl, aes(cust_rating_wt, own_ratio, label=value)) +
+mrt <- subset(mech_ratings_tbl, cust_rating_wt >= 6)
+ggplot(mrt, aes(cust_rating_wt, own_ratio, label=value)) +
   labs(title="Game Mechanics in Collection", 
        x="Rating by Customer", 
        y="Games in Collection vs Overall") +
@@ -141,26 +131,30 @@ ggplot(mech_ratings_tbl, aes(cust_rating_wt, own_ratio, label=value)) +
 
 For each mechanic, this chart shows the difference between the
 customer's rating and the rating overall.
+
 * Line drawing is far better rated by the customer than by others
 * Variable player powers, often purchased and well-rated (6.73) by the customer,
 is somewhat higher-rated by other players.
 
 ```{r Plot ratings per mech, echo=FALSE, message=TRUE, warning=TRUE}
+topx <- 20
 mech_ratings_tbl$pref <- mech_ratings_tbl$cust_rating_wt - mech_ratings_tbl$all_ratings_wt
-ggplot(mech_ratings_tbl[1:25, ], aes(reorder(value, pref), pref)) +
-  labs(title="Customer's Preferred Mechanics", x="Mechanic", 
+mrt <- top_n(mech_ratings_tbl, topx, pref)
+ggplot(mrt, aes(reorder(value, pref), pref)) +
+  labs(title="Customer's Preferred Mechanics", x="Top Mechanics", 
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
   geom_point() +
-  geom_segment(aes(x=1, xend=25, y=0, yend=0), 
+  geom_segment(aes(x=1, xend=topx, y=0, yend=0), 
                color="blue") +
   coord_flip()
 ```
 
 
 
-# Games per category
+## Games per category
 Which game categories are common in the customer's collection?
+
 * Science fiction and Space exploration are in the top 6; grouping might help.
 * Dice rolling is a mechanic and Dice is a category. Categories might benefit
 from manual grooming.
@@ -169,8 +163,8 @@ from manual grooming.
 ```{r games per category, echo=FALSE, message=TRUE, warning=TRUE}
 gcat_ratings_tbl <- arrange(calc_attr_ratings("boardgamecategory"),
                             desc(n_cust_games))
-ggplot(gcat_ratings_tbl[1:20,], aes(reorder(value, n_games), n_games)) +
-  labs(title="Games per Category", x="Top 20 Categories", y=NULL) +
+ggplot(gcat_ratings_tbl[1:40, ], aes(reorder(value, n_games), n_games)) +
+  labs(title="Games per Category", x="Top 40 Categories", y=NULL) +
   geom_col(fill="purple") +
   coord_flip()
 ```
@@ -178,14 +172,15 @@ ggplot(gcat_ratings_tbl[1:20,], aes(reorder(value, n_games), n_games)) +
 Here we show the number of games the customer owns with each category, and the
 customer's rating of games with each category I removed games rated under
 5.5. Some observations:
+
 * We see that the customer tends to buy card games and science fiction games
 * Space exploration (7.5) and Exploration games (7.3) are highly rated and
 more commonly purchased.
 * Nautical games are even higher rated (8.25) but less frequently purchased.
 
 ```{r Plot ownership per category, echo=FALSE, message=TRUE, warning=FALSE}
-grt2 <- subset(gcat_ratings_tbl, cust_rating_wt >= 6)
-ggplot(grt2, aes(cust_rating_wt, own_ratio, label=value)) +
+grt <- subset(gcat_ratings_tbl, cust_rating_wt >= 6)
+ggplot(grt, aes(cust_rating_wt, own_ratio, label=value)) +
   labs(title="Customer Preference and Ownership per Category", 
        x="Customer Rating", 
        y="Games in Collection vs Overall") +
@@ -198,12 +193,13 @@ ggplot(grt2, aes(cust_rating_wt, own_ratio, label=value)) +
 
 ```{r Plot ratings per category, echo=FALSE, message=TRUE, warning=TRUE}
 gcat_ratings_tbl$pref <- gcat_ratings_tbl$cust_rating_wt - gcat_ratings_tbl$all_ratings_wt
-ggplot(gcat_ratings_tbl[1:20, ], aes(reorder(value, pref), pref)) +
-  labs(title="Customer's Preferred Categories", x="Category", 
+grt <- top_n(gcat_ratings_tbl, topx, pref)
+ggplot(grt, aes(reorder(value, pref), pref)) +
+  labs(title="Customer's Preferred Categories", x="Top Categories", 
        y="Rating by Customer - Rating by Others") +
   theme(legend.position="bottom") +
   geom_point() +
-  geom_segment(aes(x=1, xend=20, y=0, yend=0),
+  geom_segment(aes(x=1, xend=topx, y=0, yend=0),
                color="purple") +
   coord_flip()
 ```
